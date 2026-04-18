@@ -1302,11 +1302,22 @@ function Palette({ open, onClose, projects, onGoto, onOpen }) {
 
 // ── Detail Slide-over ─────────────────────────────────────────────────────────
 
-function Detail({ project, onClose, onPatch, onHistory }) {
+function Detail({ project, onClose, onPatch, onHistory, onDelete }) {
   const [editingStatus, setEditingStatus] = React.useState(false);
   const [editingTurn, setEditingTurn] = React.useState(false);
+  const [editingTitle, setEditingTitle] = React.useState(false);
+  const [titleDraft, setTitleDraft] = React.useState('');
+  const [editingVenue, setEditingVenue] = React.useState(false);
+  const [venueDraft, setVenueDraft] = React.useState('');
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [noteDraft, setNoteDraft] = React.useState('');
   const [noteAuthor, setNoteAuthor] = React.useState('MM');
+
+  // Reset ephemeral edit state when the selected project changes
+  React.useEffect(() => {
+    setEditingTitle(false); setEditingVenue(false);
+    setConfirmDelete(false);
+  }, [project && project.id]);
 
   React.useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onClose(); }
@@ -1327,6 +1338,21 @@ function Detail({ project, onClose, onPatch, onHistory }) {
     setNoteDraft('');
   }
 
+  function saveTitle() {
+    const next = titleDraft.trim();
+    setEditingTitle(false);
+    if (!next || next === p.title) return;
+    onPatch(p.id, { title: next, updated: new Date().toISOString().slice(0,10) });
+    onHistory(p.id, { d: new Date().toISOString().slice(0,10), who: 'MM', t: `Renamed project to "${next}".` });
+  }
+
+  function saveVenue() {
+    const next = venueDraft.trim();
+    setEditingVenue(false);
+    if (!next || next === p.venue) return;
+    onPatch(p.id, { venue: next, updated: new Date().toISOString().slice(0,10) });
+  }
+
   return (
     <>
       <div className="scrim" onClick={onClose} />
@@ -1339,12 +1365,74 @@ function Detail({ project, onClose, onPatch, onHistory }) {
             <span className="close mono" onClick={onClose}>esc ✕</span>
           </div>
 
-          <h2>{p.title}</h2>
+          {editingTitle ? (
+            <input
+              autoFocus
+              type="text"
+              value={titleDraft}
+              onChange={e => setTitleDraft(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); saveTitle(); }
+                else if (e.key === 'Escape') { setEditingTitle(false); }
+              }}
+              style={{
+                width: '100%',
+                fontFamily: 'var(--serif)',
+                fontSize: 'var(--fs-2xl)',
+                fontWeight: 400,
+                lineHeight: 1.15,
+                letterSpacing: '-0.01em',
+                color: 'var(--ink)',
+                background: 'var(--paper-2)',
+                border: '1px solid var(--rule)',
+                padding: '8px 10px',
+                margin: '20px 0 8px',
+                display: 'block',
+              }}
+            />
+          ) : (
+            <h2
+              title="click to rename"
+              style={{cursor: 'text'}}
+              onClick={() => { setTitleDraft(p.title); setEditingTitle(true); }}
+            >
+              {p.title}
+            </h2>
+          )}
           <div className="byline">
             {p.coauthors.length > 0 ? (
               <>with {p.coauthors.map(id => personById(id)?.name).filter(Boolean).join(', ')} · </>
             ) : null}
-            for <em>{p.venue}</em>
+            for {editingVenue ? (
+              <input
+                autoFocus
+                type="text"
+                value={venueDraft}
+                onChange={e => setVenueDraft(e.target.value)}
+                onBlur={saveVenue}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); saveVenue(); }
+                  else if (e.key === 'Escape') { setEditingVenue(false); }
+                }}
+                style={{
+                  fontFamily: 'var(--serif)',
+                  fontStyle: 'italic',
+                  fontSize: 'var(--fs-body)',
+                  color: 'var(--ink)',
+                  background: 'var(--paper-2)',
+                  border: '1px solid var(--rule)',
+                  padding: '2px 6px',
+                  minWidth: 260,
+                }}
+              />
+            ) : (
+              <em
+                title="click to edit venue"
+                style={{cursor: 'text', borderBottom: '1px dashed var(--rule)'}}
+                onClick={() => { setVenueDraft(p.venue); setEditingVenue(true); }}
+              >{p.venue}</em>
+            )}
           </div>
 
           <dl className="facts">
@@ -1469,6 +1557,54 @@ function Detail({ project, onClose, onPatch, onHistory }) {
                 <span className="t">{h.t}</span>
               </div>
             ))}
+          </div>
+
+          <div style={{
+            marginTop: 48,
+            paddingTop: 20,
+            borderTop: '1px solid var(--rule)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'baseline',
+            gap: 16,
+            fontFamily: 'var(--mono)',
+            fontSize: 'var(--fs-micro)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.09em',
+          }}>
+            {confirmDelete ? (
+              <>
+                <span style={{color: 'var(--ink-3)'}}>delete this project permanently?</span>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  style={{
+                    fontFamily: 'var(--mono)', fontSize: 'var(--fs-micro)',
+                    textTransform: 'uppercase', letterSpacing: '0.09em',
+                    color: 'var(--ink-2)', padding: '6px 12px',
+                    border: '1px solid var(--rule)', background: 'transparent',
+                  }}
+                >cancel</button>
+                <button
+                  onClick={() => onDelete && onDelete(p.id)}
+                  style={{
+                    fontFamily: 'var(--mono)', fontSize: 'var(--fs-micro)',
+                    textTransform: 'uppercase', letterSpacing: '0.09em',
+                    color: 'var(--status-waiting)', padding: '6px 14px',
+                    border: '1px solid var(--status-waiting)', background: 'transparent',
+                  }}
+                >yes, delete</button>
+              </>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                style={{
+                  fontFamily: 'var(--mono)', fontSize: 'var(--fs-micro)',
+                  textTransform: 'uppercase', letterSpacing: '0.09em',
+                  color: 'var(--ink-3)', padding: '6px 0', background: 'transparent',
+                  borderBottom: '1px dashed var(--rule)',
+                }}
+              >delete project</button>
+            )}
           </div>
         </div>
       </aside>
@@ -1934,6 +2070,12 @@ function App() {
     flashToast('Project created');
   }
 
+  function deleteProject(id) {
+    setProjects(ps => ps.filter(p => p.id !== id));
+    setSelectedId(null);
+    flashToast('Project deleted');
+  }
+
   function flashToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(null), 1400);
@@ -2012,6 +2154,7 @@ function App() {
           onClose={() => setSelectedId(null)}
           onPatch={patchProject}
           onHistory={appendHistory}
+          onDelete={deleteProject}
         />
       )}
 
