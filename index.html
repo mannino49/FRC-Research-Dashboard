@@ -1789,8 +1789,93 @@ function Home({ projects, onOpen, grouping, onPatch, onHistory }) {
 
 // ── People + New Project ──────────────────────────────────────────────────────
 
-function People({ projects, onOpenProject }) {
-  const all = Object.entries(window.PEOPLE).filter(([, p]) => p.kind === 'external');
+function PersonForm({ initial, onSave, onCancel, submitLabel }) {
+  const [initials, setInitials] = React.useState(initial?.initials || '');
+  const [name,     setName]     = React.useState(initial?.name     || '');
+  const [affil,    setAffil]    = React.useState(initial?.affil    || '');
+
+  function submit() {
+    if (!name.trim()) return;
+    const derivedInitials = initials.trim() ||
+      name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    onSave({ initials: derivedInitials, name: name.trim(), affil: affil.trim() });
+  }
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '80px 1fr 1fr auto',
+      gap: 16,
+      alignItems: 'baseline',
+      padding: '16px 0',
+      borderBottom: '1px solid var(--rule-soft)',
+    }} onClick={e => e.stopPropagation()}>
+      <input
+        type="text"
+        value={initials}
+        onChange={e => setInitials(e.target.value.toUpperCase().slice(0, 4))}
+        onKeyDown={e => { if (e.key === 'Enter') submit(); else if (e.key === 'Escape') onCancel(); }}
+        placeholder="INIT"
+        maxLength={4}
+        style={{
+          fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 'var(--fs-xl)',
+          color: 'var(--ink)', background: 'var(--paper-2)',
+          border: '1px solid var(--rule)', padding: '4px 8px', width: 72,
+        }}
+      />
+      <input
+        autoFocus
+        type="text"
+        value={name}
+        onChange={e => setName(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') submit(); else if (e.key === 'Escape') onCancel(); }}
+        placeholder="Full name"
+        style={{
+          fontFamily: 'var(--serif)', fontSize: 'var(--fs-lg)',
+          color: 'var(--ink)', background: 'var(--paper-2)',
+          border: '1px solid var(--rule)', padding: '4px 8px',
+        }}
+      />
+      <input
+        type="text"
+        value={affil}
+        onChange={e => setAffil(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') submit(); else if (e.key === 'Escape') onCancel(); }}
+        placeholder="Affiliation"
+        style={{
+          fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 'var(--fs-sm)',
+          color: 'var(--ink)', background: 'var(--paper-2)',
+          border: '1px solid var(--rule)', padding: '4px 8px',
+        }}
+      />
+      <span style={{display: 'flex', gap: 10, alignItems: 'baseline'}}>
+        <button
+          onClick={submit}
+          style={{
+            fontFamily: 'var(--mono)', fontSize: 'var(--fs-micro)',
+            textTransform: 'uppercase', letterSpacing: '0.09em',
+            color: 'var(--ink)', padding: '6px 12px',
+            border: '1px solid var(--ink-2)', background: 'transparent',
+          }}
+        >{submitLabel || 'Save'}</button>
+        <button
+          onClick={onCancel}
+          style={{
+            fontFamily: 'var(--mono)', fontSize: 'var(--fs-micro)',
+            textTransform: 'uppercase', letterSpacing: '0.09em',
+            color: 'var(--ink-3)', padding: '6px 0', background: 'transparent',
+          }}
+        >cancel</button>
+      </span>
+    </div>
+  );
+}
+
+function People({ projects, people, onOpenProject, onAddPerson, onUpdatePerson, onDeletePerson }) {
+  const all = Object.entries(people).filter(([, p]) => p.kind === 'external');
+  const [adding, setAdding] = React.useState(false);
+  const [editingId, setEditingId] = React.useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState(null);
 
   function projectsOf(id) { return projects.filter(p => p.coauthors.includes(id)); }
   function activeOf(id)   { return projects.filter(p => p.coauthors.includes(id) && p.turn === id); }
@@ -1802,11 +1887,54 @@ function People({ projects, onOpenProject }) {
         <span className="title">External co-authors</span>
         <span className="count">{all.length} people</span>
       </div>
+
+      <div style={{
+        display: 'flex', justifyContent: 'flex-end',
+        padding: '12px 0',
+        borderBottom: '1px solid var(--rule-soft)',
+      }}>
+        {!adding && (
+          <button
+            onClick={() => { setAdding(true); setEditingId(null); }}
+            style={{
+              fontFamily: 'var(--mono)', fontSize: 'var(--fs-micro)',
+              textTransform: 'uppercase', letterSpacing: '0.09em',
+              color: 'var(--ink-2)', padding: '6px 12px',
+              border: '1px solid var(--rule)', background: 'transparent',
+            }}
+          >+ add collaborator</button>
+        )}
+      </div>
+
+      {adding && (
+        <PersonForm
+          onSave={(data) => { onAddPerson(data); setAdding(false); }}
+          onCancel={() => setAdding(false)}
+          submitLabel="Add"
+        />
+      )}
+
       {all.map(([id, pr]) => {
+        if (editingId === id) {
+          return (
+            <PersonForm
+              key={id}
+              initial={pr}
+              submitLabel="Save"
+              onSave={(data) => { onUpdatePerson(id, data); setEditingId(null); }}
+              onCancel={() => setEditingId(null)}
+            />
+          );
+        }
         const ps   = projectsOf(id);
         const acts = activeOf(id);
         return (
-          <div className="person" key={id} onClick={() => ps[0] && onOpenProject(ps[0].id)}>
+          <div
+            className="person"
+            key={id}
+            style={{gridTemplateColumns: '80px 1fr 220px 200px auto'}}
+            onClick={() => ps[0] && onOpenProject(ps[0].id)}
+          >
             <span className="init">{pr.initials}</span>
             <span className="nm">
               <div className="n">{pr.name}</div>
@@ -1826,6 +1954,39 @@ function People({ projects, onOpenProject }) {
                 ? <span className="now">→ their turn on {acts.length}</span>
                 : <span style={{color: 'var(--ink-4)'}}>—</span>}
             </span>
+            <span
+              onClick={e => e.stopPropagation()}
+              style={{
+                display: 'flex', gap: 10, alignItems: 'baseline',
+                fontFamily: 'var(--mono)', fontSize: 'var(--fs-micro)',
+                textTransform: 'uppercase', letterSpacing: '0.09em',
+              }}
+            >
+              {confirmDeleteId === id ? (
+                <>
+                  <span style={{color: 'var(--ink-3)'}}>remove?</span>
+                  <button
+                    onClick={() => setConfirmDeleteId(null)}
+                    style={{color: 'var(--ink-3)', padding: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit'}}
+                  >cancel</button>
+                  <button
+                    onClick={() => { onDeletePerson(id); setConfirmDeleteId(null); }}
+                    style={{color: 'var(--status-waiting)', padding: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit'}}
+                  >yes</button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => { setEditingId(id); setConfirmDeleteId(null); setAdding(false); }}
+                    style={{color: 'var(--ink-3)', padding: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', borderBottom: '1px dashed var(--rule)'}}
+                  >edit</button>
+                  <button
+                    onClick={() => { setConfirmDeleteId(id); setEditingId(null); }}
+                    style={{color: 'var(--ink-3)', padding: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', borderBottom: '1px dashed var(--rule)'}}
+                  >delete</button>
+                </>
+              )}
+            </span>
           </div>
         );
       })}
@@ -1833,18 +1994,26 @@ function People({ projects, onOpenProject }) {
   );
 }
 
-function NewProject({ onCreate, onCancel }) {
+function NewProject({ people, onCreate, onCancel, onAddPerson }) {
   const [title,     setTitle]     = React.useState('');
   const [type,      setType]      = React.useState('paper');
   const [turn,      setTurn]      = React.useState('MM');
   const [venue,     setVenue]     = React.useState('');
   const [note,      setNote]      = React.useState('');
   const [coauthors, setCoauthors] = React.useState([]);
+  const [addingPerson, setAddingPerson] = React.useState(false);
 
-  const externals = Object.entries(window.PEOPLE).filter(([, p]) => p.kind === 'external');
+  const peopleMap = people || window.PEOPLE;
+  const externals = Object.entries(peopleMap).filter(([, p]) => p.kind === 'external');
 
   function toggle(id) {
     setCoauthors(c => c.includes(id) ? c.filter(x => x !== id) : [...c, id]);
+  }
+
+  function handleNewPerson(data) {
+    const newId = onAddPerson && onAddPerson(data);
+    if (newId) setCoauthors(c => c.includes(newId) ? c : [...c, newId]);
+    setAddingPerson(false);
   }
 
   function submit() {
@@ -1910,12 +2079,32 @@ function NewProject({ onCreate, onCancel }) {
 
       <div className="field">
         <label>External co-authors</label>
-        <div className="pillrow">
-          {externals.map(([id, p]) => (
-            <button key={id} className={coauthors.includes(id) ? 'on' : ''} onClick={() => toggle(id)}>
-              {p.name}
-            </button>
-          ))}
+        <div>
+          <div className="pillrow">
+            {externals.map(([id, p]) => (
+              <button key={id} className={coauthors.includes(id) ? 'on' : ''} onClick={() => toggle(id)}>
+                {p.name}
+              </button>
+            ))}
+            {!addingPerson && (
+              <button
+                onClick={() => setAddingPerson(true)}
+                style={{
+                  borderStyle: 'dashed',
+                  color: 'var(--ink-3)',
+                }}
+              >+ add new</button>
+            )}
+          </div>
+          {addingPerson && (
+            <div style={{marginTop: 14}}>
+              <PersonForm
+                submitLabel="Add"
+                onSave={handleNewPerson}
+                onCancel={() => setAddingPerson(false)}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -1936,7 +2125,9 @@ function NewProject({ onCreate, onCancel }) {
 // ── Root App ──────────────────────────────────────────────────────────────────
 
 const PROJECTS_CACHE_KEY = 'frc.v1.projects';
-const API_URL = '/api/projects';
+const PEOPLE_CACHE_KEY   = 'frc.v1.people';
+const API_URL            = '/api/projects';
+const PEOPLE_API_URL     = '/api/people';
 
 function App() {
   const [warmth,    setWarmth]    = React.useState(0.55);
@@ -1955,38 +2146,57 @@ function App() {
     return window.PROJECTS;
   });
 
+  // People: hydrate the same way. Keep window.PEOPLE in sync so the existing
+  // personById / turnLabel helpers across the app read live data.
+  const [people, setPeople] = React.useState(() => {
+    try {
+      const cached = localStorage.getItem(PEOPLE_CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch (e) { /* fall through */ }
+    return window.PEOPLE;
+  });
+  // Mirror to window.PEOPLE before render so helpers see the current map.
+  window.PEOPLE = people;
+
   // sync state: 'loading' | 'synced' | 'saving' | 'offline'
   const [syncState, setSyncState] = React.useState('loading');
   const [toast,     setToast]     = React.useState(null);
   const [tweaksOn,  setTweaksOn]  = React.useState(false);
 
   // Refs for save pipeline
-  const hasLoadedRef = React.useRef(false);
-  const saveTimerRef = React.useRef(null);
+  const hasLoadedRef       = React.useRef(false);
+  const saveTimerRef       = React.useRef(null);
+  const peopleSaveTimerRef = React.useRef(null);
 
-  // Initial load: pull authoritative copy from the API.
+  // Initial load: pull authoritative copy from the API (projects + people in parallel).
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
+      let projectsOk = false, peopleOk = false;
       try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error('bad status ' + res.status);
-        const data = await res.json();
-        if (cancelled) return;
-        if (Array.isArray(data) && data.length > 0) setProjects(data);
-        setSyncState('synced');
-      } catch (e) {
-        if (cancelled) return;
-        // API unreachable — keep whatever we hydrated from cache/seed.
-        setSyncState('offline');
-      } finally {
-        if (!cancelled) hasLoadedRef.current = true;
-      }
+        const [pRes, peRes] = await Promise.all([fetch(API_URL), fetch(PEOPLE_API_URL)]);
+        if (pRes.ok) {
+          const data = await pRes.json();
+          if (!cancelled && Array.isArray(data) && data.length > 0) setProjects(data);
+          projectsOk = true;
+        }
+        if (peRes.ok) {
+          const data = await peRes.json();
+          if (!cancelled && data && typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length > 0) {
+            setPeople(data);
+            window.PEOPLE = data;
+          }
+          peopleOk = true;
+        }
+      } catch (e) { /* fall through */ }
+      if (cancelled) return;
+      setSyncState(projectsOk && peopleOk ? 'synced' : 'offline');
+      hasLoadedRef.current = true;
     })();
     return () => { cancelled = true; };
   }, []);
 
-  // Save on any change: cache locally immediately, PUT to API debounced.
+  // Save projects: cache locally immediately, PUT to API debounced.
   React.useEffect(() => {
     if (!hasLoadedRef.current) return;
     try { localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(projects)); } catch (e) {}
@@ -2006,6 +2216,29 @@ function App() {
     }, 500);
     return () => clearTimeout(saveTimerRef.current);
   }, [projects]);
+
+  // Save people: same pattern as projects.
+  React.useEffect(() => {
+    // Always keep window.PEOPLE mirrored so helper functions see live data.
+    window.PEOPLE = people;
+    if (!hasLoadedRef.current) return;
+    try { localStorage.setItem(PEOPLE_CACHE_KEY, JSON.stringify(people)); } catch (e) {}
+    clearTimeout(peopleSaveTimerRef.current);
+    setSyncState('saving');
+    peopleSaveTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(PEOPLE_API_URL, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(people),
+        });
+        setSyncState(res.ok ? 'synced' : 'offline');
+      } catch (e) {
+        setSyncState('offline');
+      }
+    }, 500);
+    return () => clearTimeout(peopleSaveTimerRef.current);
+  }, [people]);
 
   // Apply warmth to :root
   React.useEffect(() => {
@@ -2074,6 +2307,66 @@ function App() {
     setProjects(ps => ps.filter(p => p.id !== id));
     setSelectedId(null);
     flashToast('Project deleted');
+  }
+
+  // Generate a unique people-map key from the given initials.
+  // Falls back to appending a digit if the initials clash.
+  function uniquePersonId(initials, current) {
+    const base = (initials || 'X').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || 'X';
+    if (!current[base]) return base;
+    for (let i = 2; i < 100; i++) {
+      const k = base + i;
+      if (!current[k]) return k;
+    }
+    return base + Date.now();
+  }
+
+  function addPerson({ initials, name, affil }) {
+    const clean = {
+      initials: (initials || '').trim().toUpperCase().slice(0, 4) || 'X',
+      name: (name || '').trim(),
+      affil: (affil || '').trim(),
+      kind: 'external',
+    };
+    if (!clean.name) return null;
+    let newId;
+    setPeople(prev => {
+      newId = uniquePersonId(clean.initials, prev);
+      return { ...prev, [newId]: { ...clean, initials: newId.replace(/\d+$/, '') || clean.initials } };
+    });
+    flashToast('Collaborator added');
+    return newId;
+  }
+
+  function updatePerson(id, patch) {
+    setPeople(prev => {
+      if (!prev[id]) return prev;
+      const clean = { ...prev[id], ...patch };
+      if (patch.name  !== undefined) clean.name  = String(patch.name).trim();
+      if (patch.affil !== undefined) clean.affil = String(patch.affil).trim();
+      return { ...prev, [id]: clean };
+    });
+    flashToast('Collaborator updated');
+  }
+
+  function deletePerson(id) {
+    // Can't delete the internal admins.
+    if (id === 'MM' || id === 'SK') return;
+    setPeople(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    // Scrub references from every project so nothing is left pointing at a ghost.
+    setProjects(ps => ps.map(p => {
+      const coauthors = p.coauthors.filter(c => c !== id);
+      const waitingOn = p.waitingOn === id ? null : p.waitingOn;
+      const turn      = p.turn === id ? 'MM' : p.turn;
+      return (coauthors.length !== p.coauthors.length || waitingOn !== p.waitingOn || turn !== p.turn)
+        ? { ...p, coauthors, waitingOn, turn }
+        : p;
+    }));
+    flashToast('Collaborator deleted');
   }
 
   function flashToast(msg) {
@@ -2145,8 +2438,24 @@ function App() {
         </>
       )}
 
-      {page === 'people' && <People projects={projects} onOpenProject={(id) => { setSelectedId(id); setPage('home'); }} />}
-      {page === 'new'    && <NewProject onCreate={createProject} onCancel={() => setPage('home')} />}
+      {page === 'people' && (
+        <People
+          projects={projects}
+          people={people}
+          onOpenProject={(id) => { setSelectedId(id); setPage('home'); }}
+          onAddPerson={addPerson}
+          onUpdatePerson={updatePerson}
+          onDeletePerson={deletePerson}
+        />
+      )}
+      {page === 'new' && (
+        <NewProject
+          people={people}
+          onCreate={createProject}
+          onCancel={() => setPage('home')}
+          onAddPerson={addPerson}
+        />
+      )}
 
       {selected && (
         <Detail
