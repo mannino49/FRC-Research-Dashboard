@@ -1,0 +1,9 @@
+{
+  "name": "frc-research-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FRC Research and Project Dashboard — static site + Netlify Functions backend",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

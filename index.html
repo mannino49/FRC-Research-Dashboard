@@ -1799,15 +1799,77 @@ function NewProject({ onCreate, onCancel }) {
 
 // ── Root App ──────────────────────────────────────────────────────────────────
 
+const PROJECTS_CACHE_KEY = 'frc.v1.projects';
+const API_URL = '/api/projects';
+
 function App() {
   const [warmth,    setWarmth]    = React.useState(0.55);
   const [grouping,  setGrouping]  = React.useState(() => localStorage.getItem('frc.grouping') || 'turn');
   const [page,      setPage]      = React.useState(() => localStorage.getItem('frc.page') || 'home');
   const [selectedId, setSelectedId] = React.useState(null);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
-  const [projects,  setProjects]  = React.useState(window.PROJECTS);
+
+  // Projects: hydrate from localStorage synchronously so first render is never empty.
+  // The API then replaces it on mount if a server copy exists.
+  const [projects, setProjects] = React.useState(() => {
+    try {
+      const cached = localStorage.getItem(PROJECTS_CACHE_KEY);
+      if (cached) return JSON.parse(cached);
+    } catch (e) { /* fall through */ }
+    return window.PROJECTS;
+  });
+
+  // sync state: 'loading' | 'synced' | 'saving' | 'offline'
+  const [syncState, setSyncState] = React.useState('loading');
   const [toast,     setToast]     = React.useState(null);
   const [tweaksOn,  setTweaksOn]  = React.useState(false);
+
+  // Refs for save pipeline
+  const hasLoadedRef = React.useRef(false);
+  const saveTimerRef = React.useRef(null);
+
+  // Initial load: pull authoritative copy from the API.
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error('bad status ' + res.status);
+        const data = await res.json();
+        if (cancelled) return;
+        if (Array.isArray(data) && data.length > 0) setProjects(data);
+        setSyncState('synced');
+      } catch (e) {
+        if (cancelled) return;
+        // API unreachable — keep whatever we hydrated from cache/seed.
+        setSyncState('offline');
+      } finally {
+        if (!cancelled) hasLoadedRef.current = true;
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Save on any change: cache locally immediately, PUT to API debounced.
+  React.useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    try { localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(projects)); } catch (e) {}
+    clearTimeout(saveTimerRef.current);
+    setSyncState('saving');
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(API_URL, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(projects),
+        });
+        setSyncState(res.ok ? 'synced' : 'offline');
+      } catch (e) {
+        setSyncState('offline');
+      }
+    }, 500);
+    return () => clearTimeout(saveTimerRef.current);
+  }, [projects]);
 
   // Apply warmth to :root
   React.useEffect(() => {
@@ -1894,6 +1956,17 @@ function App() {
           <div><strong>Mannino</strong> &amp; <strong>Kotler</strong></div>
           <div>two admins · equal standing</div>
           <div>est. 2024</div>
+          <div style={{
+            marginTop: 8,
+            color: syncState === 'offline' ? 'var(--status-waiting)' :
+                   syncState === 'synced'  ? 'var(--ink-4)' :
+                   'var(--ink-3)',
+          }}>
+            {syncState === 'loading' ? '· loading' :
+             syncState === 'saving'  ? '· saving' :
+             syncState === 'offline' ? '⚠ offline · local only' :
+             '· synced'}
+          </div>
         </div>
       </header>
 
