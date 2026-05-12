@@ -32,7 +32,7 @@ VITE_SUPABASE_URL=your-project-url
 VITE_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 OPENAI_API_KEY=your-openai-key
-OPENAI_MODEL=gpt-4.1
+OPENAI_MODEL=gpt-5.4-mini
 ```
 
 Only the two `VITE_` values are exposed to the browser. The service-role and OpenAI keys must stay server-side.

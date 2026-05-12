@@ -250,6 +250,20 @@ export async function appendHistoryRecord(projectId, entry) {
   };
 }
 
+export async function createAiOutputRecord(projectId, output) {
+  if (!isSupabaseConfigured) return;
+
+  const { error } = await supabase.from('ai_outputs').insert({
+    project_id: projectId,
+    person_id: output.personId || null,
+    output_type: output.outputType,
+    prompt: output.prompt,
+    response: output.response,
+    model: output.model || null,
+  });
+  if (error) throw error;
+}
+
 function historyPayload(projectId, entry) {
   return {
     project_id: projectId,

@@ -166,9 +166,9 @@ Do not commit `.env` or `.env.local`.
 ## Recommended Next Steps
 
 1. Verify production login and edit persistence for both dashboard users.
-2. Continue Phase 5 dashboard features.
-3. Add import/export for plug-and-play use.
-4. Add server-side AI endpoints and draft artifact workflows.
+2. Add `OPENAI_API_KEY` to Netlify production environment variables.
+3. Verify the draft-outline AI workflow in production.
+4. Continue Phase 6 with abstract drafting and next-move suggestions.
 
 ## Phase 5 Preview
 
@@ -177,3 +177,12 @@ Likely next build items:
 - Import/export for plug-and-play use.
 - Configurable people, categories, statuses, and project types.
 - More polished notes and link editing.
+
+## Phase 6 Preview
+
+First AI workflow is a server-side draft-outline action:
+
+- Browser sends project context and Supabase session token to `/api/ai`.
+- Netlify function verifies the Supabase user before calling OpenAI.
+- OpenAI API key remains server-side.
+- Generated outline is saved to `ai_outputs` as a draft artifact.

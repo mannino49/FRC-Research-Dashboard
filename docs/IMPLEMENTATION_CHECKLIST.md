@@ -87,8 +87,8 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 
 ## Phase 6: AI Agent Features
 
-- [ ] Create a server-side AI endpoint so the OpenAI API key is never exposed in the browser.
-- [ ] Add project-context builder:
+- [x] Create a server-side AI endpoint so the OpenAI API key is never exposed in the browser.
+- [x] Add project-context builder:
   - title
   - type
   - venue
@@ -98,18 +98,18 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
   - history
   - links
 - [ ] Add “Draft abstract” action.
-- [ ] Add “Draft outline” action.
+- [x] Add “Draft outline” action.
 - [ ] Add “Suggest collaborators” action.
 - [ ] Add “Suggest paper/project direction” action.
 - [ ] Add an in-app agent panel for project operations.
-- [ ] Save AI outputs to the project as draft artifacts or history entries.
-- [ ] Add regenerate, copy, and save controls for AI outputs.
-- [ ] Add clear system prompts for each AI workflow.
+- [x] Save AI outputs to the project as draft artifacts or history entries.
+- [x] Add regenerate, copy, and save controls for AI outputs.
+- [x] Add clear system prompts for each AI workflow.
 - [ ] Add basic safety and quality constraints:
   - cite uncertainty
   - avoid fabricated publication facts
   - ask for missing details when needed
-- [ ] Add tests for prompt context assembly and endpoint validation.
+- [x] Add tests for prompt context assembly and endpoint validation.
 
 ## Phase 7: Product Polish
 

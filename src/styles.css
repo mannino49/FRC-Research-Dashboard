@@ -837,6 +837,94 @@ a { color: inherit; text-decoration: none; }
 }
 .long-notes button.post:hover { background: var(--paper-3); }
 
+.ai-panel {
+  margin-top: 28px;
+  padding: 18px 0 20px;
+  border-bottom: 1px solid var(--rule);
+}
+.ai-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+.ai-panel .lbl {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+}
+.ai-panel p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-style: italic;
+}
+.ai-panel button {
+  flex: 0 0 auto;
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  color: var(--ink);
+  padding: 7px 12px;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.ai-panel button:hover:not(:disabled) {
+  background: var(--paper-3);
+  border-color: var(--ink-2);
+}
+.ai-panel button:disabled {
+  color: var(--ink-4);
+  cursor: progress;
+}
+.ai-message {
+  margin-top: 10px;
+  color: var(--status-submitted);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.ai-message.error {
+  color: var(--status-waiting);
+}
+.ai-output {
+  margin-top: 14px;
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+.ai-output pre {
+  margin: 0;
+  padding: 14px;
+  white-space: pre-wrap;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.ai-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--rule-soft);
+}
+.ai-actions span {
+  margin-right: auto;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.ai-actions button {
+  padding: 5px 10px;
+}
+
 /* ---------- command palette ---------- */
 .palette-scrim {
   position: fixed; inset: 0;
