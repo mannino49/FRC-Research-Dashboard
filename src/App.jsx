@@ -1,8 +1,10 @@
 import React from 'react';
 import Detail from './components/Detail.jsx';
 import Home from './components/Home.jsx';
+import { ExternalLinkIcon } from './components/Icons.jsx';
 import Palette from './components/Palette.jsx';
 import { NewProject, People } from './components/Pages.jsx';
+import { RESEARCH_DRIVE_URL } from './constants.js';
 import { PEOPLE, PROJECTS } from './data/seedData.js';
 import {
   appendHistoryRecord,
@@ -244,6 +246,10 @@ export default function App() {
         <a className={page === 'home' ? 'active' : ''} onClick={() => { setPage('home'); setSelectedId(null); }}>Projects</a>
         <a className={page === 'people' ? 'active' : ''} onClick={() => { setPage('people'); setSelectedId(null); }}>Collaborators</a>
         <a className={page === 'new' ? 'active' : ''} onClick={() => { setPage('new'); setSelectedId(null); }}>New project</a>
+        <a className="external-nav" href={RESEARCH_DRIVE_URL} target="_blank" rel="noopener noreferrer">
+          Research Drive
+          <ExternalLinkIcon />
+        </a>
         <span className="spacer" />
         <span className={classNames('source-pill', dataSource === 'supabase' && 'live', dataSource === 'seed' && 'fallback')}>
           {sourceLabel(dataSource, saveState)}

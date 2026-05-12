@@ -150,6 +150,16 @@ a { color: inherit; text-decoration: none; }
 }
 .nav a:hover { color: var(--ink); }
 .nav a.active { color: var(--ink); border-bottom-color: var(--ink); }
+.nav a.external-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav a.external-nav svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
 .nav .spacer { flex: 1; }
 .nav .kbd {
   color: var(--ink-3);
@@ -183,6 +193,50 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ---------- summary strip ---------- */
+.drive-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  margin-top: 28px;
+  padding: 22px 24px;
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background .12s linear, border-color .12s linear;
+}
+.drive-card:hover {
+  background: var(--paper-3);
+  border-color: var(--ink-3);
+}
+.drive-card-icon,
+.drive-card-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-3);
+}
+.drive-card-icon {
+  color: var(--ink-2);
+}
+.drive-card-copy {
+  min-width: 0;
+}
+.drive-card-title {
+  display: block;
+  color: var(--ink);
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+}
+.drive-card-sub {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-style: italic;
+}
+
 .summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

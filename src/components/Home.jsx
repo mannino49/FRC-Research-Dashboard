@@ -1,4 +1,6 @@
 import React from 'react';
+import { RESEARCH_DRIVE_URL } from '../constants.js';
+import { ExternalLinkIcon, FolderIcon } from './Icons.jsx';
 import { STATUSES, classNames, daysAgo, personById, typeMark, typeWord } from '../utils.js';
 
 export default function Home({ people, projects, onOpen, grouping, onPatch, onHistory }) {
@@ -62,6 +64,15 @@ export default function Home({ people, projects, onOpen, grouping, onPatch, onHi
 
   return (
     <>
+      <a className="drive-card" href={RESEARCH_DRIVE_URL} target="_blank" rel="noopener noreferrer">
+        <span className="drive-card-icon"><FolderIcon /></span>
+        <span className="drive-card-copy">
+          <span className="drive-card-title">Research Drive</span>
+          <span className="drive-card-sub">All papers, drafts, PDFs, and working project files in Google Drive</span>
+        </span>
+        <span className="drive-card-link"><ExternalLinkIcon /></span>
+      </a>
+
       <section className="summary">
         <div className="cell">
           <div className="n old" style={{ color: 'var(--accent)' }}>{mineCount}</div>
