@@ -13,6 +13,24 @@ export function buildProjectContext(project, people) {
       const who = personById(people, entry.who);
       return `${fmtDate(entry.d)} · ${who?.initials || entry.who}: ${entry.t}`;
     });
+  const papers = (project.papers || [])
+    .slice(0, 8)
+    .map((paper) => ({
+      title: paper.title,
+      authors: paper.authors || '',
+      year: paper.year || '',
+      status: paper.status || '',
+      version: paper.version || '',
+      doi: paper.doi || '',
+      sourceUrl: paper.sourceUrl || '',
+      driveUrl: paper.driveUrl || '',
+      abstract: paper.abstract || '',
+      keyFindings: paper.keyFindings || '',
+      methods: paper.methods || '',
+      quotesNotes: paper.quotesNotes || '',
+      relevance: paper.relevance || '',
+      relevanceNote: paper.relevanceNote || '',
+    }));
 
   return {
     id: project.id,
@@ -35,6 +53,7 @@ export function buildProjectContext(project, people) {
     notes: project.notes || '',
     links,
     history,
+    papers,
   };
 }
 
@@ -54,8 +73,28 @@ export function projectContextToPrompt(context) {
     context.nextAction ? `Next action: ${context.nextAction}` : 'Next action: none listed',
     context.notes ? `Project notes:\n${context.notes}` : '',
     context.links.length ? `Links:\n${context.links.join('\n')}` : '',
+    context.papers?.length ? `Research memory:\n${context.papers.map(paperToPrompt).join('\n\n')}` : '',
     context.history.length ? `Recent history:\n${context.history.join('\n')}` : '',
   ]
     .filter(Boolean)
     .join('\n\n');
+}
+
+function paperToPrompt(paper) {
+  return [
+    `Paper: ${paper.title}`,
+    paper.authors ? `Authors: ${paper.authors}` : '',
+    paper.year ? `Year: ${paper.year}` : '',
+    paper.status ? `Status: ${paper.status}` : '',
+    paper.version ? `Version: ${paper.version}` : '',
+    paper.doi ? `DOI: ${paper.doi}` : '',
+    paper.sourceUrl ? `Source: ${paper.sourceUrl}` : '',
+    paper.driveUrl ? `Drive file: ${paper.driveUrl}` : '',
+    paper.abstract ? `Abstract/summary: ${paper.abstract}` : '',
+    paper.keyFindings ? `Key findings: ${paper.keyFindings}` : '',
+    paper.methods ? `Methods/evidence: ${paper.methods}` : '',
+    paper.quotesNotes ? `Quotes/notes: ${paper.quotesNotes}` : '',
+    paper.relevance ? `Relevance: ${paper.relevance}` : '',
+    paper.relevanceNote ? `Project-specific note: ${paper.relevanceNote}` : '',
+  ].filter(Boolean).join('\n');
 }

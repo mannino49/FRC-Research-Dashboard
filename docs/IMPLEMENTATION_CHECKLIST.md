@@ -97,6 +97,10 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
   - notes
   - history
   - links
+  - linked research memory
+- [x] Add research-memory tables for paper metadata, Drive links, summaries, findings, methods, quotes/notes, and relevance.
+- [x] Add project-paper linking in Supabase.
+- [x] Add project detail UI for adding and viewing linked paper memory.
 - [ ] Add “Draft abstract” action.
 - [x] Add operational suggested prompts:
   - summarize project status

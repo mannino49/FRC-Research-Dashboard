@@ -117,7 +117,7 @@ npm run build
 Current test count:
 
 ```text
-4 files, 8 tests passing
+4 files, 9 tests passing
 ```
 
 Known npm note:
@@ -166,9 +166,9 @@ Do not commit `.env` or `.env.local`.
 ## Recommended Next Steps
 
 1. Verify production login and edit persistence for both dashboard users.
-2. Verify the operational AI prompt workflow in production.
-3. Continue Phase 6 with project-level memory, paper/reference context, or Google Drive document indexing.
-4. Add abstract/manuscript drafting only after the dashboard has literature content to ground it.
+2. Run the research-memory Supabase migration in production.
+3. Verify adding a linked paper memory record inside a project.
+4. Verify AI outputs include linked paper summaries when available.
 
 ## Phase 5 Preview
 
@@ -187,3 +187,4 @@ First AI workflow is a server-side project-operations assistant:
 - OpenAI API key remains server-side.
 - Suggested prompts cover project status, next action, stalled/waiting checks, collaborator follow-up emails, progress notes, and metadata cleanup.
 - Generated outputs are saved to `ai_outputs` as draft artifacts.
+- Research memory now stores paper metadata and summaries in Supabase while keeping files and drafts in Google Drive.

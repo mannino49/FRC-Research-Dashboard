@@ -27,6 +27,7 @@ function normalizeSeedProjects(projects) {
     domain: '',
     tags: [],
     notes: '',
+    papers: [],
     createdAt: `${project.updated}T00:00:00.000Z`,
     updatedAt: `${project.updated}T00:00:00.000Z`,
     ...project,
@@ -61,9 +62,48 @@ function personPayload(id, person) {
   };
 }
 
-function projectsFromRows(projectRows, historyRows, linkRows) {
+function papersFromRows(paperRows, linkRows) {
+  const papersById = new Map(
+    paperRows.map((paper) => [
+      paper.id,
+      {
+        id: paper.id,
+        title: paper.title,
+        authors: paper.authors || '',
+        year: paper.publication_year || '',
+        doi: paper.doi || '',
+        sourceUrl: paper.source_url || '',
+        driveUrl: paper.drive_url || '',
+        status: paper.status || 'reference',
+        version: paper.version_label || '',
+        abstract: paper.abstract || '',
+        keyFindings: paper.key_findings || '',
+        methods: paper.methods || '',
+        quotesNotes: paper.quotes_notes || '',
+        relevance: paper.relevance || '',
+        createdAt: paper.created_at,
+        updatedAt: paper.updated_at,
+      },
+    ]),
+  );
+
+  const papersByProject = groupBy(linkRows, (link) => link.project_id, (link) => ({
+    ...papersById.get(link.paper_id),
+    relevanceNote: link.relevance_note || '',
+    sortOrder: link.sort_order || 0,
+  }));
+
+  papersByProject.forEach((papers) => {
+    papers.sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title));
+  });
+
+  return papersByProject;
+}
+
+function projectsFromRows(projectRows, historyRows, linkRows, paperRows = [], projectPaperRows = []) {
   const historyByProject = groupBy(historyRows, (entry) => entry.project_id);
   const linksByProject = groupBy(linkRows, (link) => link.project_id);
+  const papersByProject = papersFromRows(paperRows, projectPaperRows);
 
   return projectRows.map((project) => ({
     id: project.id,
@@ -85,6 +125,7 @@ function projectsFromRows(projectRows, historyRows, linkRows) {
       kind: link.kind,
       url: link.url,
     })),
+    papers: papersByProject.get(project.id) || [],
     history: (historyByProject.get(project.id) || []).map((entry) => ({
       id: entry.id,
       d: entry.entry_on,
@@ -96,14 +137,19 @@ function projectsFromRows(projectRows, historyRows, linkRows) {
   }));
 }
 
-function groupBy(rows, getKey) {
+function groupBy(rows, getKey, mapRow = (row) => row) {
   return rows.reduce((groups, row) => {
     const key = getKey(row);
     const existing = groups.get(key) || [];
-    existing.push(row);
+    const value = mapRow(row);
+    if (value.id) existing.push(value);
     groups.set(key, existing);
     return groups;
   }, new Map());
+}
+
+function isMissingRelation(error) {
+  return error?.code === '42P01' || /does not exist/i.test(error?.message || '');
 }
 
 function projectPayload(project) {
@@ -148,18 +194,27 @@ function patchPayload(patch) {
 export async function loadDashboardData() {
   if (!isSupabaseConfigured) return cloneSeedData();
 
-  const [peopleResult, projectsResult, historyResult, linksResult] = await Promise.all([
+  const [peopleResult, projectsResult, historyResult, linksResult, papersResult, projectPapersResult] = await Promise.all([
     supabase.from('people').select('*').order('name'),
     supabase.from('projects').select('*').order('updated_on', { ascending: false }),
     supabase.from('project_history').select('*').order('entry_on', { ascending: false }).order('created_at', { ascending: false }),
     supabase.from('project_links').select('*').order('sort_order').order('kind'),
+    supabase.from('research_papers').select('*').order('updated_at', { ascending: false }),
+    supabase.from('project_papers').select('*').order('sort_order'),
   ]);
 
-  const error = peopleResult.error || projectsResult.error || historyResult.error || linksResult.error;
+  const papersUnavailable = isMissingRelation(papersResult.error) || isMissingRelation(projectPapersResult.error);
+  const error = peopleResult.error || projectsResult.error || historyResult.error || linksResult.error || (papersUnavailable ? null : papersResult.error || projectPapersResult.error);
   if (error) throw error;
 
   const people = peopleMap(peopleResult.data || []);
-  const projects = projectsFromRows(projectsResult.data || [], historyResult.data || [], linksResult.data || []);
+  const projects = projectsFromRows(
+    projectsResult.data || [],
+    historyResult.data || [],
+    linksResult.data || [],
+    papersUnavailable ? [] : papersResult.data || [],
+    papersUnavailable ? [] : projectPapersResult.data || [],
+  );
 
   return {
     people,
@@ -264,6 +319,58 @@ export async function createAiOutputRecord(projectId, output) {
   if (error) throw error;
 }
 
+export async function createResearchPaperForProject(projectId, paper) {
+  if (!isSupabaseConfigured) return paper;
+
+  const paperPayload = researchPaperPayload(paper);
+  const { data, error } = await supabase
+    .from('research_papers')
+    .insert(paperPayload)
+    .select('*')
+    .single();
+  if (error) throw error;
+
+  const linkResult = await supabase.from('project_papers').insert({
+    project_id: projectId,
+    paper_id: data.id,
+    relevance_note: paper.relevanceNote || '',
+    sort_order: paper.sortOrder || 0,
+  });
+  if (linkResult.error) throw linkResult.error;
+
+  return {
+    id: data.id,
+    title: data.title,
+    authors: data.authors || '',
+    year: data.publication_year || '',
+    doi: data.doi || '',
+    sourceUrl: data.source_url || '',
+    driveUrl: data.drive_url || '',
+    status: data.status || 'reference',
+    version: data.version_label || '',
+    abstract: data.abstract || '',
+    keyFindings: data.key_findings || '',
+    methods: data.methods || '',
+    quotesNotes: data.quotes_notes || '',
+    relevance: data.relevance || '',
+    relevanceNote: paper.relevanceNote || '',
+    sortOrder: paper.sortOrder || 0,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
+export async function unlinkResearchPaperFromProject(projectId, paperId) {
+  if (!isSupabaseConfigured) return;
+
+  const { error } = await supabase
+    .from('project_papers')
+    .delete()
+    .eq('project_id', projectId)
+    .eq('paper_id', paperId);
+  if (error) throw error;
+}
+
 function historyPayload(projectId, entry) {
   return {
     project_id: projectId,
@@ -279,5 +386,24 @@ function linkPayload(projectId, link, index) {
     kind: link.kind,
     url: link.url,
     sort_order: index,
+  };
+}
+
+function researchPaperPayload(paper) {
+  const year = Number.parseInt(paper.year, 10);
+  return {
+    title: paper.title,
+    authors: paper.authors || '',
+    publication_year: Number.isFinite(year) ? year : null,
+    doi: paper.doi || null,
+    source_url: paper.sourceUrl || null,
+    drive_url: paper.driveUrl || null,
+    status: paper.status || 'reference',
+    version_label: paper.version || null,
+    abstract: paper.abstract || '',
+    key_findings: paper.keyFindings || '',
+    methods: paper.methods || '',
+    quotes_notes: paper.quotesNotes || '',
+    relevance: paper.relevance || '',
   };
 }

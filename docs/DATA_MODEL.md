@@ -55,6 +55,17 @@ Projects are stored as an array.
   links: [
     { kind: "Overleaf", url: "#" }
   ],
+  papers: [
+    {
+      title: "Flow and Attention Review",
+      authors: "Example Author",
+      year: 2024,
+      driveUrl: "https://drive.google.com/...",
+      abstract: "Short summary...",
+      keyFindings: "Useful findings...",
+      relevance: "Why it matters here..."
+    }
+  ],
   history: [
     {
       d: "2026-04-16",
@@ -82,6 +93,7 @@ Projects are stored as an array.
 - `waitingOn`: person ID when blocked on a collaborator, otherwise `null`.
 - `coauthors`: array of person IDs.
 - `links`: array of link objects.
+- `papers`: linked research memory records. Files stay in Google Drive; Supabase stores metadata and summaries.
 - `history`: reverse-chronological array of project updates.
 - `createdAt`: database timestamp.
 - `updatedAt`: database timestamp.
@@ -111,6 +123,30 @@ Projects are stored as an array.
 - `d`: ISO date string, `YYYY-MM-DD`.
 - `who`: person ID for the update author.
 - `t`: update text.
+
+## Research Memory
+
+Research memory stores the structured index that makes AI literature-aware without moving the actual files out of Google Drive.
+
+### `research_papers`
+
+- `title`: paper, draft, or reference title.
+- `authors`: author list as plain text.
+- `publication_year`: optional year.
+- `doi`: optional DOI.
+- `source_url`: journal, preprint, PubMed, or external source URL.
+- `drive_url`: Google Drive file URL for the paper or draft.
+- `status`: `reference`, `to-read`, `summarized`, `draft`, or `submitted`.
+- `version_label`: optional draft/version label.
+- `abstract`: pasted abstract or short summary.
+- `key_findings`: main claims, results, or useful ideas.
+- `methods`: methods, evidence type, sample, model, or design notes.
+- `quotes_notes`: important quotes, caveats, or reading notes.
+- `relevance`: why this item matters for research work.
+
+### `project_papers`
+
+Links papers to projects with an optional project-specific relevance note and sort order.
 
 ## API Payloads
 

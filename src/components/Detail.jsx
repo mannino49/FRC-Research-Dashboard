@@ -4,7 +4,26 @@ import { runProjectAiAction } from '../lib/aiClient.js';
 import { createAiOutputRecord } from '../lib/dashboardRepository.js';
 import { STATUSES, classNames, fmtDate, isMine, personById, typeMark, typeWord } from '../utils.js';
 
-export default function Detail({ people, project, onClose, onPatch, onHistory, onDelete }) {
+function emptyPaperDraft() {
+  return {
+    title: '',
+    authors: '',
+    year: '',
+    doi: '',
+    sourceUrl: '',
+    driveUrl: '',
+    status: 'reference',
+    version: '',
+    abstract: '',
+    keyFindings: '',
+    methods: '',
+    quotesNotes: '',
+    relevance: '',
+    relevanceNote: '',
+  };
+}
+
+export default function Detail({ people, project, onClose, onPatch, onHistory, onAddPaper, onRemovePaper, onDelete }) {
   const [editingStatus, setEditingStatus] = React.useState(false);
   const [editingTurn, setEditingTurn] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
@@ -17,6 +36,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
   const [aiMessage, setAiMessage] = React.useState('');
   const [aiDraft, setAiDraft] = React.useState(null);
   const [activeAiAction, setActiveAiAction] = React.useState(AI_ACTIONS[0].id);
+  const [paperDraft, setPaperDraft] = React.useState(() => emptyPaperDraft());
 
   React.useEffect(() => {
     setNotesDraft(project?.notes || '');
@@ -27,6 +47,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
     setAiMessage('');
     setAiDraft(null);
     setActiveAiAction(AI_ACTIONS[0].id);
+    setPaperDraft(emptyPaperDraft());
   }, [project?.id, project?.notes]);
 
   React.useEffect(() => {
@@ -75,6 +96,20 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
     onPatch(p.id, {
       links: p.links.filter((link) => (link.id || link.kind) !== idOrKind),
     });
+  }
+
+  function updatePaperDraft(field, value) {
+    setPaperDraft((draft) => ({ ...draft, [field]: value }));
+  }
+
+  function addPaper() {
+    if (!paperDraft.title.trim()) return;
+    onAddPaper(p.id, {
+      ...paperDraft,
+      title: paperDraft.title.trim(),
+      authors: paperDraft.authors.trim(),
+    });
+    setPaperDraft(emptyPaperDraft());
   }
 
   function deleteProject() {
@@ -284,6 +319,112 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
             <div className="actions">
               <span>{notesDraft.trim().length} chars</span>
               <button className="post" onClick={saveNotes}>Save notes</button>
+            </div>
+          </div>
+
+          <div className="research-memory">
+            <div className="memory-head">
+              <div>
+                <div className="lbl">Research memory</div>
+                <p>Paper metadata and notes linked to this project. These summaries are included in AI context.</p>
+              </div>
+              <span>{p.papers?.length || 0} linked</span>
+            </div>
+
+            {p.papers?.length ? (
+              <div className="paper-list">
+                {p.papers.map((paper) => (
+                  <article className="paper-card" key={paper.id}>
+                    <div>
+                      <h3>{paper.title}</h3>
+                      <p>
+                        {[paper.authors, paper.year, paper.status, paper.version].filter(Boolean).join(' · ') || 'No metadata yet'}
+                      </p>
+                    </div>
+                    <div className="paper-links">
+                      {paper.driveUrl && <a href={paper.driveUrl} target="_blank" rel="noreferrer">Drive</a>}
+                      {paper.sourceUrl && <a href={paper.sourceUrl} target="_blank" rel="noreferrer">Source</a>}
+                      {paper.doi && <a href={`https://doi.org/${paper.doi.replace(/^https?:\/\/doi.org\//, '')}`} target="_blank" rel="noreferrer">DOI</a>}
+                      <button onClick={() => onRemovePaper(p.id, paper.id)}>Unlink</button>
+                    </div>
+                    {(paper.abstract || paper.keyFindings || paper.relevance || paper.relevanceNote) && (
+                      <dl>
+                        {paper.abstract && <><dt>Abstract</dt><dd>{paper.abstract}</dd></>}
+                        {paper.keyFindings && <><dt>Key findings</dt><dd>{paper.keyFindings}</dd></>}
+                        {paper.relevance && <><dt>Relevance</dt><dd>{paper.relevance}</dd></>}
+                        {paper.relevanceNote && <><dt>Project note</dt><dd>{paper.relevanceNote}</dd></>}
+                      </dl>
+                    )}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-memory">No papers linked yet.</div>
+            )}
+
+            <div className="paper-form">
+              <label>
+                <span>Title</span>
+                <input value={paperDraft.title} onChange={(e) => updatePaperDraft('title', e.target.value)} placeholder="Paper or draft title" />
+              </label>
+              <label>
+                <span>Authors</span>
+                <input value={paperDraft.authors} onChange={(e) => updatePaperDraft('authors', e.target.value)} placeholder="Author list" />
+              </label>
+              <label>
+                <span>Year</span>
+                <input value={paperDraft.year} onChange={(e) => updatePaperDraft('year', e.target.value)} placeholder="2026" />
+              </label>
+              <label>
+                <span>Status</span>
+                <select value={paperDraft.status} onChange={(e) => updatePaperDraft('status', e.target.value)}>
+                  <option value="reference">Reference</option>
+                  <option value="to-read">To read</option>
+                  <option value="summarized">Summarized</option>
+                  <option value="draft">Draft</option>
+                  <option value="submitted">Submitted</option>
+                </select>
+              </label>
+              <label>
+                <span>DOI</span>
+                <input value={paperDraft.doi} onChange={(e) => updatePaperDraft('doi', e.target.value)} placeholder="10.xxxx/xxxxx" />
+              </label>
+              <label>
+                <span>Version</span>
+                <input value={paperDraft.version} onChange={(e) => updatePaperDraft('version', e.target.value)} placeholder="v1, submitted, proof" />
+              </label>
+              <label className="wide">
+                <span>Google Drive URL</span>
+                <input value={paperDraft.driveUrl} onChange={(e) => updatePaperDraft('driveUrl', e.target.value)} placeholder="https://drive.google.com/..." />
+              </label>
+              <label className="wide">
+                <span>Source URL</span>
+                <input value={paperDraft.sourceUrl} onChange={(e) => updatePaperDraft('sourceUrl', e.target.value)} placeholder="Journal, preprint, PubMed, etc." />
+              </label>
+              <label className="wide">
+                <span>Abstract / summary</span>
+                <textarea value={paperDraft.abstract} onChange={(e) => updatePaperDraft('abstract', e.target.value)} placeholder="Paste the abstract or your own short summary." />
+              </label>
+              <label className="wide">
+                <span>Key findings</span>
+                <textarea value={paperDraft.keyFindings} onChange={(e) => updatePaperDraft('keyFindings', e.target.value)} placeholder="Main claims, results, or useful ideas." />
+              </label>
+              <label className="wide">
+                <span>Methods / evidence</span>
+                <textarea value={paperDraft.methods} onChange={(e) => updatePaperDraft('methods', e.target.value)} placeholder="Study design, sample, model, methods, evidence type." />
+              </label>
+              <label className="wide">
+                <span>Quotes / notes</span>
+                <textarea value={paperDraft.quotesNotes} onChange={(e) => updatePaperDraft('quotesNotes', e.target.value)} placeholder="Important quotes, caveats, or reading notes." />
+              </label>
+              <label className="wide">
+                <span>Relevance to this project</span>
+                <textarea value={paperDraft.relevance} onChange={(e) => updatePaperDraft('relevance', e.target.value)} placeholder="Why this paper matters for this project." />
+              </label>
+              <div className="paper-form-actions">
+                <span>Files stay in Drive; this stores the index and summaries.</span>
+                <button onClick={addPaper} disabled={!paperDraft.title.trim()}>Add paper memory</button>
+              </div>
             </div>
           </div>
 

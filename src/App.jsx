@@ -10,9 +10,11 @@ import {
   appendHistoryRecord,
   createPersonRecord,
   createProjectRecord,
+  createResearchPaperForProject,
   deleteProjectRecord,
   loadDashboardData,
   replaceProjectLinksRecord,
+  unlinkResearchPaperFromProject,
   updatePersonRecord,
   updateProjectRecord,
 } from './lib/dashboardRepository.js';
@@ -196,6 +198,51 @@ export default function App() {
       setSelectedId(id);
       setSaveState('error');
       flashToast('Delete failed');
+    }
+  }
+
+  async function addProjectPaper(projectId, paper) {
+    const tempPaper = {
+      ...paper,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const previous = projects;
+    setProjects((ps) => ps.map((p) => (p.id === projectId ? { ...p, papers: [tempPaper, ...(p.papers || [])] } : p)));
+    setSaveState('saving');
+
+    try {
+      const savedPaper = await createResearchPaperForProject(projectId, paper);
+      setProjects((ps) => ps.map((p) => (
+        p.id === projectId
+          ? { ...p, papers: (p.papers || []).map((item) => (item.id === tempPaper.id ? savedPaper : item)) }
+          : p
+      )));
+      setSaveState('saved');
+      flashToast('Research memory added');
+    } catch (error) {
+      console.error(error);
+      setProjects(previous);
+      setSaveState('error');
+      flashToast('Research memory save failed');
+    }
+  }
+
+  async function removeProjectPaper(projectId, paperId) {
+    const previous = projects;
+    setProjects((ps) => ps.map((p) => (p.id === projectId ? { ...p, papers: (p.papers || []).filter((paper) => paper.id !== paperId) } : p)));
+    setSaveState('saving');
+
+    try {
+      await unlinkResearchPaperFromProject(projectId, paperId);
+      setSaveState('saved');
+      flashToast('Research memory unlinked');
+    } catch (error) {
+      console.error(error);
+      setProjects(previous);
+      setSaveState('error');
+      flashToast('Research memory unlink failed');
     }
   }
 
@@ -383,6 +430,8 @@ export default function App() {
           onClose={() => setSelectedId(null)}
           onPatch={patchProject}
           onHistory={appendHistory}
+          onAddPaper={addProjectPaper}
+          onRemovePaper={removeProjectPaper}
           onDelete={deleteProject}
         />
       )}
