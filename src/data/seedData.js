@@ -15,7 +15,6 @@ export const PEOPLE = {
   JK: { initials: 'JK', name: 'J. A. Scott Kelso', kind: 'external', affil: 'Florida Atlantic University' },
   SS: { initials: 'SS', name: 'Susan Schneider', kind: 'external', affil: 'Florida Atlantic University' },
   GN: { initials: 'GN', name: 'Georg Northoff', kind: 'external', affil: 'University of Ottawa' },
-  HS: { initials: 'HS', name: 'Hans Schneider', kind: 'external', affil: 'Max Planck, Leipzig' },
   GF: {
     initials: 'GF',
     name: 'Glenn Fox',
@@ -110,26 +109,6 @@ export const PROJECTS = [
     history: [
       { d: '2026-04-13', who: 'SK', t: 'Comments in. Mostly on §4.' },
       { d: '2026-04-07', who: 'MM', t: 'First full draft.' },
-    ],
-  },
-  {
-    id: 'p05',
-    title: 'FRC × Max Planck: Metastability Workshop',
-    type: 'applied',
-    status: 'Waiting',
-    turn: 'HS',
-    venue: 'Leipzig, Oct 2026',
-    updated: '2026-04-10',
-    note: 'Waiting on Schneider for the list of attendees and date confirmation.',
-    waitingOn: 'HS',
-    coauthors: ['HS', 'GN'],
-    links: [
-      { kind: 'Proposal', url: '#' },
-      { kind: 'Budget', url: '#' },
-    ],
-    history: [
-      { d: '2026-04-10', who: 'MM', t: 'Sent the proposal to Hans.' },
-      { d: '2026-03-28', who: 'SK', t: 'Agreed to co-host.' },
     ],
   },
   {
