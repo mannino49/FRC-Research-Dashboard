@@ -64,7 +64,7 @@ Implemented:
 - Dashboard repository.
 - Seed-data fallback when Supabase env vars are missing.
 - Load/save path for people/projects.
-- Persist project creation, project updates, and history entries.
+- Persist project creation, deletion, updates, and history entries.
 - Persist collaborator creation and updates.
 - Supabase schema and setup docs.
 - Netlify production build uses Supabase environment variables.

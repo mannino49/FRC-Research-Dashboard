@@ -563,6 +563,49 @@ a { color: inherit; text-decoration: none; }
 .slide .history .entry .who { font-style: italic; color: var(--ink-2); }
 .slide .history .entry .t { color: var(--ink); }
 
+.danger-zone {
+  margin-top: 36px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+}
+.danger-zone .lbl {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+}
+.danger-zone p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  font-style: italic;
+}
+.danger-zone button {
+  flex: 0 0 auto;
+  border: 1px solid var(--rule);
+  color: var(--ink-2);
+  padding: 7px 12px;
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  background: var(--paper-2);
+}
+.danger-zone button:hover {
+  color: var(--ink);
+  border-color: var(--ink-2);
+}
+.danger-zone button.confirm {
+  color: var(--status-waiting);
+  border-color: var(--status-waiting);
+}
+
 .slide .links {
   display: flex; flex-wrap: wrap; gap: 8px 18px;
   margin-top: 6px;

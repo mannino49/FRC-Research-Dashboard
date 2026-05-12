@@ -1,9 +1,10 @@
 import React from 'react';
 import { STATUSES, classNames, fmtDate, isMine, personById, typeMark, typeWord } from '../utils.js';
 
-export default function Detail({ people, project, onClose, onPatch, onHistory }) {
+export default function Detail({ people, project, onClose, onPatch, onHistory, onDelete }) {
   const [editingStatus, setEditingStatus] = React.useState(false);
   const [editingTurn, setEditingTurn] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [noteDraft, setNoteDraft] = React.useState('');
   const [noteAuthor, setNoteAuthor] = React.useState('MM');
   const [notesDraft, setNotesDraft] = React.useState(project?.notes || '');
@@ -14,6 +15,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory })
     setNotesDraft(project?.notes || '');
     setLinkKind('');
     setLinkUrl('');
+    setConfirmDelete(false);
   }, [project?.id, project?.notes]);
 
   React.useEffect(() => {
@@ -62,6 +64,14 @@ export default function Detail({ people, project, onClose, onPatch, onHistory })
     onPatch(p.id, {
       links: p.links.filter((link) => (link.id || link.kind) !== idOrKind),
     });
+  }
+
+  function deleteProject() {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    onDelete(p.id);
   }
 
   return (
@@ -247,6 +257,16 @@ export default function Detail({ people, project, onClose, onPatch, onHistory })
                 <span className="t">{h.t}</span>
               </div>
             ))}
+          </div>
+
+          <div className="danger-zone">
+            <div>
+              <div className="lbl">Project controls</div>
+              <p>Delete this project and its links/history from Supabase.</p>
+            </div>
+            <button className={confirmDelete ? 'confirm' : ''} onClick={deleteProject}>
+              {confirmDelete ? 'Confirm delete' : 'Delete project'}
+            </button>
           </div>
         </div>
       </aside>

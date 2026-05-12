@@ -41,6 +41,7 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 - [x] Load people and projects from Supabase on app start.
 - [x] Preserve seed-data fallback for first-run or local demo mode.
 - [x] Persist project creation.
+- [x] Persist project deletion.
 - [x] Persist status changes.
 - [x] Persist turn changes.
 - [x] Persist waiting-on changes.

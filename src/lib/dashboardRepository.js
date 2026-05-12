@@ -211,6 +211,13 @@ export async function updateProjectRecord(id, patch) {
   if (error) throw error;
 }
 
+export async function deleteProjectRecord(id) {
+  if (!isSupabaseConfigured) return;
+
+  const { error } = await supabase.from('projects').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export async function replaceProjectLinksRecord(projectId, links) {
   if (!isSupabaseConfigured) return;
 

@@ -8,6 +8,7 @@ import {
   appendHistoryRecord,
   createPersonRecord,
   createProjectRecord,
+  deleteProjectRecord,
   loadDashboardData,
   replaceProjectLinksRecord,
   updatePersonRecord,
@@ -173,6 +174,25 @@ export default function App() {
     }
   }
 
+  async function deleteProject(id) {
+    const previous = projects;
+    setProjects((ps) => ps.filter((p) => p.id !== id));
+    setSelectedId(null);
+    setSaveState('saving');
+
+    try {
+      await deleteProjectRecord(id);
+      setSaveState('saved');
+      flashToast('Project deleted');
+    } catch (error) {
+      console.error(error);
+      setProjects(previous);
+      setSelectedId(id);
+      setSaveState('error');
+      flashToast('Delete failed');
+    }
+  }
+
   async function savePerson(id, person, mode) {
     const previous = people;
     setPeople((current) => ({
@@ -267,6 +287,7 @@ export default function App() {
           onClose={() => setSelectedId(null)}
           onPatch={patchProject}
           onHistory={appendHistory}
+          onDelete={deleteProject}
         />
       )}
 
