@@ -4,6 +4,7 @@ import Home from './components/Home.jsx';
 import Palette from './components/Palette.jsx';
 import { NewProject, People } from './components/Pages.jsx';
 import { PEOPLE, PROJECTS } from './data/seedData.js';
+import { appendHistoryRecord, createProjectRecord, loadDashboardData, replaceProjectLinksRecord, updateProjectRecord } from './lib/dashboardRepository.js';
 import { classNames } from './utils.js';
 
 export default function App() {
@@ -18,9 +19,35 @@ export default function App() {
   const [selectedId, setSelectedId] = React.useState(null);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [projects, setProjects] = React.useState(PROJECTS);
-  const [people] = React.useState(PEOPLE);
+  const [people, setPeople] = React.useState(PEOPLE);
+  const [dataSource, setDataSource] = React.useState('loading');
+  const [saveState, setSaveState] = React.useState('idle');
   const [toast, setToast] = React.useState(null);
   const [tweaksOn, setTweaksOn] = React.useState(false);
+
+  React.useEffect(() => {
+    let alive = true;
+
+    async function load() {
+      try {
+        const data = await loadDashboardData();
+        if (!alive) return;
+        setPeople(data.people);
+        setProjects(data.projects);
+        setDataSource(data.source);
+      } catch (error) {
+        console.error(error);
+        if (!alive) return;
+        setDataSource('seed');
+        flashToast('Using local seed data');
+      }
+    }
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   React.useEffect(() => {
     document.documentElement.style.setProperty('--warmth', String(warmth));
@@ -85,20 +112,57 @@ export default function App() {
     setTimeout(() => setToast(null), 1400);
   }
 
-  function patchProject(id, patch) {
+  async function patchProject(id, patch) {
+    const previous = projects;
     setProjects((ps) => ps.map((p) => (p.id === id ? { ...p, ...patch } : p)));
-    flashToast('Updated');
+    setSaveState('saving');
+
+    try {
+      const { links, ...projectPatch } = patch;
+      await updateProjectRecord(id, projectPatch);
+      if (links) await replaceProjectLinksRecord(id, links);
+      setSaveState('saved');
+      flashToast('Updated');
+    } catch (error) {
+      console.error(error);
+      setProjects(previous);
+      setSaveState('error');
+      flashToast('Save failed');
+    }
   }
 
-  function appendHistory(id, entry) {
+  async function appendHistory(id, entry) {
     setProjects((ps) => ps.map((p) => (p.id === id ? { ...p, history: [entry, ...p.history] } : p)));
+    setSaveState('saving');
+
+    try {
+      await appendHistoryRecord(id, entry);
+      setSaveState('saved');
+    } catch (error) {
+      console.error(error);
+      setSaveState('error');
+      flashToast('History save failed');
+    }
   }
 
-  function createProject(p) {
+  async function createProject(p) {
+    const previous = projects;
     setProjects((ps) => [p, ...ps]);
     setPage('home');
     setSelectedId(p.id);
-    flashToast('Project created');
+    setSaveState('saving');
+
+    try {
+      await createProjectRecord(p);
+      setSaveState('saved');
+      flashToast('Project created');
+    } catch (error) {
+      console.error(error);
+      setProjects(previous);
+      setSelectedId(null);
+      setSaveState('error');
+      flashToast('Create failed');
+    }
   }
 
   const selected = projects.find((p) => p.id === selectedId);
@@ -132,6 +196,7 @@ export default function App() {
         <a className={page === 'people' ? 'active' : ''} onClick={() => { setPage('people'); setSelectedId(null); }}>Collaborators</a>
         <a className={page === 'new' ? 'active' : ''} onClick={() => { setPage('new'); setSelectedId(null); }}>New project</a>
         <span className="spacer" />
+        <span className="kbd">{sourceLabel(dataSource, saveState)}</span>
         <span className="kbd">press <kbd>⌘K</kbd> to jump · <kbd>g h</kbd> home · <kbd>g n</kbd> new · <kbd>g c</kbd> co-authors</span>
       </nav>
 
@@ -225,4 +290,17 @@ export default function App() {
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
+}
+
+function saveLabel(saveState) {
+  if (saveState === 'saving') return 'saving…';
+  if (saveState === 'saved') return 'saved';
+  if (saveState === 'error') return 'save error';
+  return 'supabase';
+}
+
+function sourceLabel(dataSource, saveState) {
+  if (dataSource === 'loading') return 'loading data…';
+  if (dataSource === 'supabase') return saveLabel(saveState);
+  return 'local seed data';
 }

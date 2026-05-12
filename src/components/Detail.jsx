@@ -6,6 +6,15 @@ export default function Detail({ people, project, onClose, onPatch, onHistory })
   const [editingTurn, setEditingTurn] = React.useState(false);
   const [noteDraft, setNoteDraft] = React.useState('');
   const [noteAuthor, setNoteAuthor] = React.useState('MM');
+  const [notesDraft, setNotesDraft] = React.useState(project?.notes || '');
+  const [linkKind, setLinkKind] = React.useState('');
+  const [linkUrl, setLinkUrl] = React.useState('');
+
+  React.useEffect(() => {
+    setNotesDraft(project?.notes || '');
+    setLinkKind('');
+    setLinkUrl('');
+  }, [project?.id, project?.notes]);
 
   React.useEffect(() => {
     function onKey(e) {
@@ -27,6 +36,34 @@ export default function Detail({ people, project, onClose, onPatch, onHistory })
     setNoteDraft('');
   }
 
+  function saveNotes() {
+    onPatch(p.id, {
+      notes: notesDraft,
+      updated: new Date().toISOString().slice(0, 10),
+    });
+  }
+
+  function addLink() {
+    if (!linkKind.trim() || !linkUrl.trim()) return;
+    const nextLinks = [
+      ...p.links,
+      {
+        id: crypto.randomUUID(),
+        kind: linkKind.trim(),
+        url: linkUrl.trim(),
+      },
+    ];
+    onPatch(p.id, { links: nextLinks });
+    setLinkKind('');
+    setLinkUrl('');
+  }
+
+  function removeLink(idOrKind) {
+    onPatch(p.id, {
+      links: p.links.filter((link) => (link.id || link.kind) !== idOrKind),
+    });
+  }
+
   return (
     <>
       <div className="scrim" onClick={onClose} />
@@ -40,7 +77,12 @@ export default function Detail({ people, project, onClose, onPatch, onHistory })
           <h2>{p.title}</h2>
           <div className="byline">
             {p.coauthors.length > 0 ? <>with {p.coauthors.map((id) => personById(people, id)?.name).filter(Boolean).join(', ')} · </> : null}
-            for <em>{p.venue}</em>
+            for{' '}
+            {p.venueUrl ? (
+              <a href={p.venueUrl} target="_blank" rel="noreferrer"><em>{p.venue}</em></a>
+            ) : (
+              <em>{p.venue}</em>
+            )}
           </div>
 
           <dl className="facts">
@@ -87,7 +129,21 @@ export default function Detail({ people, project, onClose, onPatch, onHistory })
             </dd>
 
             <dt>Venue</dt>
-            <dd><em>{p.venue}</em></dd>
+            <dd>
+              {p.venueUrl ? <a className="text-link" href={p.venueUrl} target="_blank" rel="noreferrer"><em>{p.venue}</em></a> : <em>{p.venue}</em>}
+            </dd>
+
+            <dt>Domain</dt>
+            <dd>{p.domain || <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>uncategorized</span>}</dd>
+
+            <dt>Tags</dt>
+            <dd>
+              {p.tags?.length ? (
+                <div className="tag-list">{p.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+              ) : (
+                <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>none</span>
+              )}
+            </dd>
 
             <dt>Co-authors</dt>
             <dd>
@@ -135,13 +191,38 @@ export default function Detail({ people, project, onClose, onPatch, onHistory })
 
             <dt>Links</dt>
             <dd>
-              {p.links.length === 0 ? <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>none</span> : <div className="links">{p.links.map((l) => <a key={l.kind} href={l.url}>{l.kind}</a>)}</div>}
+              {p.links.length === 0 ? (
+                <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>none</span>
+              ) : (
+                <div className="links editable-links">
+                  {p.links.map((l) => (
+                    <span key={l.id || l.kind} className="link-chip">
+                      <a href={l.url} target="_blank" rel="noreferrer">{l.kind}</a>
+                      <button onClick={() => removeLink(l.id || l.kind)} aria-label={`Remove ${l.kind}`}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="link-editor">
+                <input value={linkKind} onChange={(e) => setLinkKind(e.target.value)} placeholder="Label" />
+                <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://…" />
+                <button onClick={addLink}>Add</button>
+              </div>
             </dd>
           </dl>
 
           <div className="note">
             <div className="lbl">Next action</div>
             <p>{p.note || <span style={{ color: 'var(--ink-3)' }}>—</span>}</p>
+          </div>
+
+          <div className="note long-notes">
+            <div className="lbl">Project notes</div>
+            <textarea value={notesDraft} onChange={(e) => setNotesDraft(e.target.value)} placeholder="Working notes, context, open questions, literature leads, or longer project memory." />
+            <div className="actions">
+              <span>{notesDraft.trim().length} chars</span>
+              <button className="post" onClick={saveNotes}>Save notes</button>
+            </div>
           </div>
 
           <div className="addnote">

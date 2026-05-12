@@ -146,7 +146,13 @@ export default function Home({ people, projects, onOpen, grouping, onPatch, onHi
                       )}
                     </span>
                   </span>
-                  <span className="venue">{p.venue}</span>
+                  <span className="venue">
+                    {p.venueUrl ? (
+                      <a href={p.venueUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{p.venue}</a>
+                    ) : (
+                      p.venue
+                    )}
+                  </span>
                   <span
                     className="status"
                     onClick={(e) => {

@@ -20,6 +20,8 @@ The current app is a Vite/React dashboard that uses browser-side seed data by de
 - [Roadmap notes](docs/ROADMAP.md)
 - [Implementation checklist](docs/IMPLEMENTATION_CHECKLIST.md)
 - [Phase 0 decisions](docs/PHASE_0_DECISIONS.md)
+- [Supabase setup](docs/SUPABASE_SETUP.md)
+- [Project status](docs/PROJECT_STATUS.md)
 
 ## Local Preview
 

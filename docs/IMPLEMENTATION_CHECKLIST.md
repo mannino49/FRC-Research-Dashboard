@@ -35,39 +35,43 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 
 ## Phase 2: Supabase Persistence
 
-- [ ] Create Supabase tables for people, projects, links, history entries, notes, and AI outputs.
-- [ ] Add migrations or SQL setup docs.
-- [ ] Add a Supabase client module.
-- [ ] Load people and projects from Supabase on app start.
-- [ ] Preserve seed-data fallback for first-run or local demo mode.
-- [ ] Persist project creation.
-- [ ] Persist status changes.
-- [ ] Persist turn changes.
-- [ ] Persist waiting-on changes.
-- [ ] Persist history entries.
-- [ ] Add loading, saving, saved, and error states.
-- [ ] Add optimistic updates with rollback or retry for failed saves.
-- [ ] Decide whether to retire or keep the existing Netlify Blob functions.
+- [x] Create Supabase tables for people, projects, links, history entries, notes, and AI outputs.
+- [x] Add migrations or SQL setup docs.
+- [x] Add a Supabase client module.
+- [x] Load people and projects from Supabase on app start.
+- [x] Preserve seed-data fallback for first-run or local demo mode.
+- [x] Persist project creation.
+- [x] Persist status changes.
+- [x] Persist turn changes.
+- [x] Persist waiting-on changes.
+- [x] Persist history entries.
+- [x] Add loading, saving, saved, and error states.
+- [x] Add optimistic updates with rollback or retry for failed saves.
+- [x] Decide whether to retire or keep the existing Netlify Blob functions.
+  - Decision: keep them temporarily as legacy reference until Supabase is live with real data.
 
 ## Phase 3: Data Model Expansion
 
-- [ ] Add `venueUrl` or first-class venue link support.
-- [ ] Add project-level `notes` separate from `note`/next action.
-- [ ] Add person profile links, including Google Scholar.
-- [ ] Add link editing for projects.
-- [ ] Replace random project IDs with database-generated IDs or stable UUIDs.
-- [ ] Add timestamps for created and updated records.
-- [ ] Add optional tags or domains for future filtering.
+- [x] Add `venueUrl` or first-class venue link support.
+- [x] Add project-level `notes` separate from `note`/next action.
+- [x] Add person profile links, including Google Scholar.
+- [x] Add link editing for projects.
+- [x] Replace random project IDs with database-generated IDs or stable UUIDs.
+- [x] Add timestamps for created and updated records.
+- [x] Add optional tags or domains for future filtering.
 
 ## Phase 4: Content Updates
 
-- [ ] Add Glenn Fox as a collaborator.
-- [ ] Add Fernando Rosas as a collaborator.
-- [ ] Add Michael Mannino Google Scholar link.
-- [ ] Add Steven Kotler Google Scholar link.
-- [ ] Add Government project.
-- [ ] Add Psychedelics research project.
+- [x] Add Glenn Fox as a collaborator.
+- [x] Add Fernando Rosas as a collaborator.
+- [x] Add Michael Mannino Google Scholar link.
+  - Added as a Google Scholar search placeholder until exact profile URL is confirmed.
+- [x] Add Steven Kotler Google Scholar link.
+  - Added as a Google Scholar search placeholder until exact profile URL is confirmed.
+- [x] Add Government project.
+- [x] Add Psychedelics research project.
 - [ ] Confirm type, turn owner, venue, collaborators, next action, and links for each new project.
+  - Starter records are in place; final details still need user confirmation.
 
 ## Phase 5: Dashboard Features
 

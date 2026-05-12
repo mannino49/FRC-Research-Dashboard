@@ -11,7 +11,9 @@ Add these people to the collaborator directory:
 - Glenn Fox
 - Fernando Rosas
 
-Open question: confirm affiliations and preferred display names.
+Status: added to seed data. Glenn Fox uses USC Marshall School of Business. Fernando E. Rosas uses University of Sussex / Imperial College London.
+
+Open question: confirm preferred display names and whether these affiliations should be shortened or changed.
 
 ### Add Projects
 
@@ -19,6 +21,8 @@ Add these project records:
 
 - Government project
 - Psychedelics research
+
+Status: starter records added to seed data.
 
 Open questions:
 
@@ -33,6 +37,8 @@ Add Google Scholar links for:
 
 - Michael Mannino
 - Steven Kotler
+
+Status: placeholder Google Scholar search links added.
 
 Open question: confirm the exact profile URLs.
 

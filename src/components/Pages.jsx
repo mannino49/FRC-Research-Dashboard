@@ -26,6 +26,11 @@ export function People({ people, projects, onOpenProject }) {
             <span className="nm">
               <div className="n">{pr.name}</div>
               <div className="aff">{pr.affil}</div>
+              {pr.scholarUrl && (
+                <a className="person-link" href={pr.scholarUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+                  Google Scholar
+                </a>
+              )}
             </span>
             <span className="projs">
               {ps.length} {ps.length === 1 ? 'project' : 'projects'}
@@ -51,7 +56,11 @@ export function NewProject({ people, onCreate, onCancel }) {
   const [type, setType] = React.useState('paper');
   const [turn, setTurn] = React.useState('MM');
   const [venue, setVenue] = React.useState('');
+  const [venueUrl, setVenueUrl] = React.useState('');
+  const [domain, setDomain] = React.useState('');
+  const [tags, setTags] = React.useState('');
   const [note, setNote] = React.useState('');
+  const [notes, setNotes] = React.useState('');
   const [coauthors, setCoauthors] = React.useState([]);
   const externals = Object.entries(people).filter(([, p]) => p.kind === 'external');
 
@@ -62,19 +71,26 @@ export function NewProject({ people, onCreate, onCancel }) {
   function submit() {
     if (!title.trim()) return;
     const today = new Date().toISOString().slice(0, 10);
+    const now = new Date().toISOString();
     onCreate({
-      id: `p${Math.floor(Math.random() * 10000)}`,
+      id: crypto.randomUUID(),
       title: title.trim(),
       type,
       turn,
       venue: venue.trim() || 'unplaced',
+      venueUrl: venueUrl.trim(),
+      domain: domain.trim(),
+      tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
       updated: today,
       status: 'Idea',
       note: note.trim(),
+      notes: notes.trim(),
       waitingOn: null,
       coauthors,
       links: [],
       history: [{ d: today, who: 'MM', t: 'Project created.' }],
+      createdAt: now,
+      updatedAt: now,
     });
   }
 
@@ -114,6 +130,21 @@ export function NewProject({ people, onCreate, onCancel }) {
       </div>
 
       <div className="field">
+        <label>Venue URL</label>
+        <input type="text" value={venueUrl} onChange={(e) => setVenueUrl(e.target.value)} placeholder="https://journal-or-publication.example" />
+      </div>
+
+      <div className="field">
+        <label>Domain</label>
+        <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="consciousness · flow · policy · psychedelics" />
+      </div>
+
+      <div className="field">
+        <label>Tags</label>
+        <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="comma-separated tags" />
+      </div>
+
+      <div className="field">
         <label>External co-authors</label>
         <div className="pillrow">
           {externals.map(([id, p]) => (
@@ -125,6 +156,11 @@ export function NewProject({ people, onCreate, onCancel }) {
       <div className="field">
         <label>Next action</label>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="The first concrete move. A sentence is enough." />
+      </div>
+
+      <div className="field">
+        <label>Project notes</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Longer context, open questions, or project memory." />
       </div>
 
       <div className="submitrow">
