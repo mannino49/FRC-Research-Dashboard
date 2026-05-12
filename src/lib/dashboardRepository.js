@@ -28,6 +28,7 @@ function normalizeSeedProjects(projects) {
     tags: [],
     notes: '',
     papers: [],
+    drafts: [],
     createdAt: `${project.updated}T00:00:00.000Z`,
     updatedAt: `${project.updated}T00:00:00.000Z`,
     ...project,
@@ -100,10 +101,30 @@ function papersFromRows(paperRows, linkRows) {
   return papersByProject;
 }
 
-function projectsFromRows(projectRows, historyRows, linkRows, paperRows = [], projectPaperRows = []) {
+function draftFromRow(draft) {
+  return {
+    id: draft.id,
+    title: draft.title,
+    driveUrl: draft.drive_url,
+    version: draft.version_label || '',
+    status: draft.status || 'draft',
+    section: draft.section_label || '',
+    summary: draft.summary || '',
+    openTasks: draft.open_tasks || '',
+    lastEdited: draft.last_edited_on || '',
+    createdAt: draft.created_at,
+    updatedAt: draft.updated_at,
+  };
+}
+
+function projectsFromRows(projectRows, historyRows, linkRows, paperRows = [], projectPaperRows = [], draftRows = []) {
   const historyByProject = groupBy(historyRows, (entry) => entry.project_id);
   const linksByProject = groupBy(linkRows, (link) => link.project_id);
   const papersByProject = papersFromRows(paperRows, projectPaperRows);
+  const draftsByProject = groupBy(draftRows, (draft) => draft.project_id, draftFromRow);
+  draftsByProject.forEach((drafts) => {
+    drafts.sort((a, b) => (b.lastEdited || '').localeCompare(a.lastEdited || '') || a.title.localeCompare(b.title));
+  });
 
   return projectRows.map((project) => ({
     id: project.id,
@@ -126,6 +147,7 @@ function projectsFromRows(projectRows, historyRows, linkRows, paperRows = [], pr
       url: link.url,
     })),
     papers: papersByProject.get(project.id) || [],
+    drafts: draftsByProject.get(project.id) || [],
     history: (historyByProject.get(project.id) || []).map((entry) => ({
       id: entry.id,
       d: entry.entry_on,
@@ -194,17 +216,19 @@ function patchPayload(patch) {
 export async function loadDashboardData() {
   if (!isSupabaseConfigured) return cloneSeedData();
 
-  const [peopleResult, projectsResult, historyResult, linksResult, papersResult, projectPapersResult] = await Promise.all([
+  const [peopleResult, projectsResult, historyResult, linksResult, papersResult, projectPapersResult, draftsResult] = await Promise.all([
     supabase.from('people').select('*').order('name'),
     supabase.from('projects').select('*').order('updated_on', { ascending: false }),
     supabase.from('project_history').select('*').order('entry_on', { ascending: false }).order('created_at', { ascending: false }),
     supabase.from('project_links').select('*').order('sort_order').order('kind'),
     supabase.from('research_papers').select('*').order('updated_at', { ascending: false }),
     supabase.from('project_papers').select('*').order('sort_order'),
+    supabase.from('manuscript_drafts').select('*').order('last_edited_on', { ascending: false }),
   ]);
 
   const papersUnavailable = isMissingRelation(papersResult.error) || isMissingRelation(projectPapersResult.error);
-  const error = peopleResult.error || projectsResult.error || historyResult.error || linksResult.error || (papersUnavailable ? null : papersResult.error || projectPapersResult.error);
+  const draftsUnavailable = isMissingRelation(draftsResult.error);
+  const error = peopleResult.error || projectsResult.error || historyResult.error || linksResult.error || (papersUnavailable ? null : papersResult.error || projectPapersResult.error) || (draftsUnavailable ? null : draftsResult.error);
   if (error) throw error;
 
   const people = peopleMap(peopleResult.data || []);
@@ -214,6 +238,7 @@ export async function loadDashboardData() {
     linksResult.data || [],
     papersUnavailable ? [] : papersResult.data || [],
     papersUnavailable ? [] : projectPapersResult.data || [],
+    draftsUnavailable ? [] : draftsResult.data || [],
   );
 
   return {
@@ -371,6 +396,26 @@ export async function unlinkResearchPaperFromProject(projectId, paperId) {
   if (error) throw error;
 }
 
+export async function createManuscriptDraftRecord(projectId, draft) {
+  if (!isSupabaseConfigured) return draft;
+
+  const { data, error } = await supabase
+    .from('manuscript_drafts')
+    .insert(manuscriptDraftPayload(projectId, draft))
+    .select('*')
+    .single();
+  if (error) throw error;
+
+  return draftFromRow(data);
+}
+
+export async function deleteManuscriptDraftRecord(id) {
+  if (!isSupabaseConfigured) return;
+
+  const { error } = await supabase.from('manuscript_drafts').delete().eq('id', id);
+  if (error) throw error;
+}
+
 function historyPayload(projectId, entry) {
   return {
     project_id: projectId,
@@ -405,5 +450,19 @@ function researchPaperPayload(paper) {
     methods: paper.methods || '',
     quotes_notes: paper.quotesNotes || '',
     relevance: paper.relevance || '',
+  };
+}
+
+function manuscriptDraftPayload(projectId, draft) {
+  return {
+    project_id: projectId,
+    title: draft.title,
+    drive_url: draft.driveUrl,
+    version_label: draft.version || null,
+    status: draft.status || 'draft',
+    section_label: draft.section || null,
+    summary: draft.summary || '',
+    open_tasks: draft.openTasks || '',
+    last_edited_on: draft.lastEdited || null,
   };
 }

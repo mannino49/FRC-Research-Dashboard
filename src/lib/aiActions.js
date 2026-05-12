@@ -53,6 +53,33 @@ export const AI_ACTIONS = [
     instruction:
       'Audit this dashboard record for missing metadata, weak organization, broken links or labels, unclear ownership, and fields that would make the project easier to manage. Return a prioritized checklist.',
   },
+  {
+    id: 'summarize_manuscript_status',
+    title: 'Summarize manuscript status',
+    verb: 'Reading...',
+    outputType: 'manuscript_status',
+    description: 'Summarize draft/version status from linked manuscript memory.',
+    instruction:
+      'Summarize the manuscript status using linked draft/version memory, project notes, and research memory. Identify the latest known version, strongest available section context, missing sections, and next writing bottleneck. Do not claim to have read Drive files unless their summaries or excerpts are in the supplied context.',
+  },
+  {
+    id: 'write_next_paragraph',
+    title: 'Write next paragraph',
+    verb: 'Writing...',
+    outputType: 'next_paragraph',
+    description: 'Draft a next paragraph from the available notes and manuscript context.',
+    instruction:
+      'Draft one polished next paragraph for the manuscript using only the supplied project, manuscript, and research-memory context. Include a brief note on where the paragraph belongs. If the context is insufficient, write a cautious bridging paragraph and clearly list what source/context is needed before using it in a real manuscript.',
+  },
+  {
+    id: 'suggest_reference_papers',
+    title: 'Suggest reference papers to search',
+    verb: 'Suggesting...',
+    outputType: 'reference_suggestions',
+    description: 'Suggest search directions and reference gaps for the bibliography.',
+    instruction:
+      'Suggest reference paper directions to search for, based on the manuscript and research memory. Focus on topics, author clusters, landmark-paper types, and search queries. Do not fabricate specific citations unless they are already present in the supplied context.',
+  },
 ];
 
 export const AI_OUTPUT_TYPES = AI_ACTIONS.map((action) => action.outputType);

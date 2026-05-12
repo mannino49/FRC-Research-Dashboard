@@ -37,6 +37,29 @@ describe('AI project context', () => {
     expect(prompt).toContain('Key findings: Flow is associated');
   });
 
+  it('includes linked manuscript draft memory in the AI prompt', () => {
+    const project = {
+      ...PROJECTS.find((item) => item.id === 'p583'),
+      drafts: [
+        {
+          title: 'Computational Model Draft',
+          version: 'v2',
+          status: 'revising',
+          section: 'Introduction',
+          driveUrl: 'https://docs.google.com/document/d/demo',
+          summary: 'The introduction frames flow as a dynamical control problem.',
+          openTasks: 'Write the next paragraph connecting active inference to attentional control.',
+        },
+      ],
+    };
+    const context = buildProjectContext(project, PEOPLE);
+    const prompt = projectContextToPrompt(context);
+
+    expect(prompt).toContain('Manuscript versions:');
+    expect(prompt).toContain('Draft: Computational Model Draft');
+    expect(prompt).toContain('Open writing tasks: Write the next paragraph');
+  });
+
   it('defines operational prompt actions for current dashboard data', () => {
     expect(AI_ACTIONS.map((action) => action.id)).toEqual([
       'summarize_status',
@@ -45,6 +68,9 @@ describe('AI project context', () => {
       'draft_followup_email',
       'history_progress_note',
       'flag_missing_metadata',
+      'summarize_manuscript_status',
+      'write_next_paragraph',
+      'suggest_reference_papers',
     ]);
     expect(getAiAction('draft_followup_email')?.instruction).toContain('subject line');
   });

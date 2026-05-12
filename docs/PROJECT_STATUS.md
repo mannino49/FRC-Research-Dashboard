@@ -117,7 +117,7 @@ npm run build
 Current test count:
 
 ```text
-4 files, 9 tests passing
+5 files, 11 tests passing
 ```
 
 Known npm note:
@@ -166,9 +166,9 @@ Do not commit `.env` or `.env.local`.
 ## Recommended Next Steps
 
 1. Verify production login and edit persistence for both dashboard users.
-2. Run the research-memory Supabase migration in production.
-3. Verify adding a linked paper memory record inside a project.
-4. Verify AI outputs include linked paper summaries when available.
+2. Run the research-memory and manuscript-drafts Supabase migrations in production.
+3. Verify adding a linked paper memory record and manuscript draft version inside a project.
+4. Verify external paper search can save a candidate reference into project memory.
 
 ## Phase 5 Preview
 
@@ -186,5 +186,7 @@ First AI workflow is a server-side project-operations assistant:
 - Netlify function verifies the Supabase user before calling OpenAI.
 - OpenAI API key remains server-side.
 - Suggested prompts cover project status, next action, stalled/waiting checks, collaborator follow-up emails, progress notes, and metadata cleanup.
+- Writing prompts cover manuscript status, next paragraph drafting, and reference-search directions.
 - Generated outputs are saved to `ai_outputs` as draft artifacts.
 - Research memory now stores paper metadata and summaries in Supabase while keeping files and drafts in Google Drive.
+- Manuscript memory stores Google Drive draft/version links and writing summaries.

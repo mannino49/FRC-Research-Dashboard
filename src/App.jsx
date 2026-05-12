@@ -10,7 +10,9 @@ import {
   appendHistoryRecord,
   createPersonRecord,
   createProjectRecord,
+  createManuscriptDraftRecord,
   createResearchPaperForProject,
+  deleteManuscriptDraftRecord,
   deleteProjectRecord,
   loadDashboardData,
   replaceProjectLinksRecord,
@@ -246,6 +248,51 @@ export default function App() {
     }
   }
 
+  async function addProjectDraft(projectId, draft) {
+    const tempDraft = {
+      ...draft,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const previous = projects;
+    setProjects((ps) => ps.map((p) => (p.id === projectId ? { ...p, drafts: [tempDraft, ...(p.drafts || [])] } : p)));
+    setSaveState('saving');
+
+    try {
+      const savedDraft = await createManuscriptDraftRecord(projectId, draft);
+      setProjects((ps) => ps.map((p) => (
+        p.id === projectId
+          ? { ...p, drafts: (p.drafts || []).map((item) => (item.id === tempDraft.id ? savedDraft : item)) }
+          : p
+      )));
+      setSaveState('saved');
+      flashToast('Draft version added');
+    } catch (error) {
+      console.error(error);
+      setProjects(previous);
+      setSaveState('error');
+      flashToast('Draft save failed');
+    }
+  }
+
+  async function removeProjectDraft(projectId, draftId) {
+    const previous = projects;
+    setProjects((ps) => ps.map((p) => (p.id === projectId ? { ...p, drafts: (p.drafts || []).filter((draft) => draft.id !== draftId) } : p)));
+    setSaveState('saving');
+
+    try {
+      await deleteManuscriptDraftRecord(draftId);
+      setSaveState('saved');
+      flashToast('Draft version removed');
+    } catch (error) {
+      console.error(error);
+      setProjects(previous);
+      setSaveState('error');
+      flashToast('Draft delete failed');
+    }
+  }
+
   async function savePerson(id, person, mode) {
     const previous = people;
     setPeople((current) => ({
@@ -432,6 +479,8 @@ export default function App() {
           onHistory={appendHistory}
           onAddPaper={addProjectPaper}
           onRemovePaper={removeProjectPaper}
+          onAddDraft={addProjectDraft}
+          onRemoveDraft={removeProjectDraft}
           onDelete={deleteProject}
         />
       )}

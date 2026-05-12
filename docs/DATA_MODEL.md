@@ -148,6 +148,28 @@ Research memory stores the structured index that makes AI literature-aware witho
 
 Links papers to projects with an optional project-specific relevance note and sort order.
 
+## Manuscript Drafts
+
+Manuscript drafts store Google Drive links and version summaries for papers being written collaboratively.
+
+### `manuscript_drafts`
+
+- `project_id`: owning project.
+- `title`: draft or section title.
+- `drive_url`: Google Docs or Drive file URL.
+- `version_label`: optional version label, such as `v1`, `SK comments`, or `submitted proof`.
+- `status`: `draft`, `needs-review`, `revising`, `submitted`, or `archived`.
+- `section_label`: optional manuscript section, such as intro, methods, discussion, or full draft.
+- `summary`: short summary of what is in this version.
+- `open_tasks`: writing tasks, missing citations, next paragraph notes, or review needs.
+- `last_edited_on`: optional date for the latest known edit.
+
+AI writing prompts use these draft summaries, not the Drive file contents themselves, unless text has been pasted into the summary/open-task fields.
+
+## External Reference Search
+
+The dashboard can search scholarly metadata through a server-side paper-search function. Search results can be saved into project research memory as `to-read` references. Each saved candidate should still be reviewed before use in a manuscript or bibliography.
+
 ## API Payloads
 
 `PUT /api/projects` expects the full projects array.

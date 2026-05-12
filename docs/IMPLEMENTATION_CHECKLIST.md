@@ -101,6 +101,9 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 - [x] Add research-memory tables for paper metadata, Drive links, summaries, findings, methods, quotes/notes, and relevance.
 - [x] Add project-paper linking in Supabase.
 - [x] Add project detail UI for adding and viewing linked paper memory.
+- [x] Add manuscript draft/version memory linked to Google Drive.
+- [x] Add writing prompts for manuscript status and next paragraph drafting.
+- [x] Add external reference search and save-to-memory flow.
 - [ ] Add “Draft abstract” action.
 - [x] Add operational suggested prompts:
   - summarize project status

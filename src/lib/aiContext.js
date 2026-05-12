@@ -31,6 +31,18 @@ export function buildProjectContext(project, people) {
       relevance: paper.relevance || '',
       relevanceNote: paper.relevanceNote || '',
     }));
+  const drafts = (project.drafts || [])
+    .slice(0, 6)
+    .map((draft) => ({
+      title: draft.title,
+      version: draft.version || '',
+      status: draft.status || '',
+      section: draft.section || '',
+      driveUrl: draft.driveUrl || '',
+      summary: draft.summary || '',
+      openTasks: draft.openTasks || '',
+      lastEdited: draft.lastEdited || '',
+    }));
 
   return {
     id: project.id,
@@ -54,6 +66,7 @@ export function buildProjectContext(project, people) {
     links,
     history,
     papers,
+    drafts,
   };
 }
 
@@ -73,11 +86,25 @@ export function projectContextToPrompt(context) {
     context.nextAction ? `Next action: ${context.nextAction}` : 'Next action: none listed',
     context.notes ? `Project notes:\n${context.notes}` : '',
     context.links.length ? `Links:\n${context.links.join('\n')}` : '',
+    context.drafts?.length ? `Manuscript versions:\n${context.drafts.map(draftToPrompt).join('\n\n')}` : '',
     context.papers?.length ? `Research memory:\n${context.papers.map(paperToPrompt).join('\n\n')}` : '',
     context.history.length ? `Recent history:\n${context.history.join('\n')}` : '',
   ]
     .filter(Boolean)
     .join('\n\n');
+}
+
+function draftToPrompt(draft) {
+  return [
+    `Draft: ${draft.title}`,
+    draft.version ? `Version: ${draft.version}` : '',
+    draft.status ? `Status: ${draft.status}` : '',
+    draft.section ? `Section: ${draft.section}` : '',
+    draft.lastEdited ? `Last edited: ${draft.lastEdited}` : '',
+    draft.driveUrl ? `Drive file: ${draft.driveUrl}` : '',
+    draft.summary ? `Summary/current state: ${draft.summary}` : '',
+    draft.openTasks ? `Open writing tasks: ${draft.openTasks}` : '',
+  ].filter(Boolean).join('\n');
 }
 
 function paperToPrompt(paper) {
