@@ -926,6 +926,42 @@ a { color: inherit; text-decoration: none; }
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
+.ai-structured {
+  padding: 16px 18px 18px;
+}
+.ai-structured h3 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  line-height: 1.2;
+}
+.ai-structured h4 {
+  margin: 16px 0 6px;
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.ai-structured p {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--fs-sm);
+  font-style: normal;
+  line-height: 1.5;
+}
+.ai-structured ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.ai-structured li + li {
+  margin-top: 4px;
+}
 .ai-actions {
   display: flex;
   align-items: center;

@@ -311,7 +311,35 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
             {aiDraft?.response && (
               <div className="ai-output">
                 <div className="ai-output-title">{aiDraft.title || getAiAction(activeAiAction)?.title}</div>
-                <pre>{aiDraft.response}</pre>
+                {aiDraft.structured ? (
+                  <div className="ai-structured">
+                    {aiDraft.structured.headline && <h3>{aiDraft.structured.headline}</h3>}
+                    {aiDraft.structured.summary && <p>{aiDraft.structured.summary}</p>}
+                    {(aiDraft.structured.sections || []).map((section) => (
+                      <section key={section.heading}>
+                        <h4>{section.heading}</h4>
+                        {section.body && <p>{section.body}</p>}
+                        {section.items?.length ? (
+                          <ul>{section.items.map((item) => <li key={item}>{item}</li>)}</ul>
+                        ) : null}
+                      </section>
+                    ))}
+                    {aiDraft.structured.nextSteps?.length ? (
+                      <section>
+                        <h4>Next steps</h4>
+                        <ul>{aiDraft.structured.nextSteps.map((step) => <li key={step}>{step}</li>)}</ul>
+                      </section>
+                    ) : null}
+                    {aiDraft.structured.missingContext?.length ? (
+                      <section>
+                        <h4>Missing context</h4>
+                        <ul>{aiDraft.structured.missingContext.map((item) => <li key={item}>{item}</li>)}</ul>
+                      </section>
+                    ) : null}
+                  </div>
+                ) : (
+                  <pre>{aiDraft.response}</pre>
+                )}
                 <div className="ai-actions">
                   <span>{aiDraft.model}</span>
                   <button onClick={copyAiDraft}>Copy</button>

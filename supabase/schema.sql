@@ -73,12 +73,16 @@ create table if not exists public.ai_outputs (
   id uuid primary key default gen_random_uuid(),
   project_id text references public.projects(id) on delete cascade,
   person_id text references public.people(id),
-  output_type text not null check (output_type in ('abstract', 'outline', 'collaborator_suggestions', 'project_direction')),
+  output_type text not null check (output_type in ('abstract', 'outline', 'collaborator_suggestions', 'project_direction', 'status_summary', 'next_action', 'stalled_waiting_check', 'followup_email', 'progress_note', 'metadata_audit')),
   prompt text not null,
   response text not null,
   model text,
   created_at timestamptz not null default now()
 );
+
+alter table public.ai_outputs drop constraint if exists ai_outputs_output_type_check;
+alter table public.ai_outputs add constraint ai_outputs_output_type_check
+  check (output_type in ('abstract', 'outline', 'collaborator_suggestions', 'project_direction', 'status_summary', 'next_action', 'stalled_waiting_check', 'followup_email', 'progress_note', 'metadata_audit'));
 
 create or replace function public.set_updated_at()
 returns trigger as $$

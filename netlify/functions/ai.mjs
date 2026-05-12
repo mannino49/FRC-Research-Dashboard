@@ -1,4 +1,4 @@
-import { getAiAction } from '../../src/lib/aiActions.js';
+import { AI_RESPONSE_SCHEMA, formatAiStructuredOutput, getAiAction } from '../../src/lib/aiActions.js';
 
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5.4-mini';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -43,12 +43,23 @@ function outputText(data) {
     .trim();
 }
 
+function structuredOutput(data) {
+  const text = outputText(data);
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 function workflowInstructions(action) {
   return [
     'You are an expert research operations assistant for the Flow Research Collective.',
     'Use only the supplied dashboard context. Do not invent publication facts, collaborators, citations, or file contents.',
     'If details are missing, name the uncertainty and make the output useful anyway.',
     'Keep the tone serious, clear, and editorial rather than promotional.',
+    'Return concise dashboard-ready content. Avoid long Markdown essays.',
     action.instruction,
   ].join(' ');
 }
@@ -88,6 +99,14 @@ export default async (req) => {
         { role: 'system', content: workflowInstructions(action) },
         { role: 'user', content: body.prompt },
       ],
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'project_ai_output',
+          strict: true,
+          schema: AI_RESPONSE_SCHEMA,
+        },
+      },
       max_output_tokens: 1600,
     }),
   });
@@ -97,11 +116,14 @@ export default async (req) => {
     return json({ error: data.error?.message || 'OpenAI request failed.' }, { status: 502 });
   }
 
+  const structured = structuredOutput(data);
+
   return json({
     action: body.action,
     outputType: action.outputType,
     title: action.title,
-    response: outputText(data),
+    response: structured ? formatAiStructuredOutput(structured) : outputText(data),
+    structured,
     model: data.model || MODEL,
   });
 };

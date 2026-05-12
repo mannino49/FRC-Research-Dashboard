@@ -55,6 +55,77 @@ export const AI_ACTIONS = [
   },
 ];
 
+export const AI_OUTPUT_TYPES = AI_ACTIONS.map((action) => action.outputType);
+
+export const AI_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    headline: {
+      type: 'string',
+      description: 'A short title for the output.',
+    },
+    summary: {
+      type: 'string',
+      description: 'A concise plain-English summary of the recommendation or readout.',
+    },
+    sections: {
+      type: 'array',
+      description: 'Readable sections to show in the dashboard.',
+      items: {
+        type: 'object',
+        properties: {
+          heading: { type: 'string' },
+          body: { type: 'string' },
+          items: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+        required: ['heading', 'body', 'items'],
+        additionalProperties: false,
+      },
+    },
+    nextSteps: {
+      type: 'array',
+      description: 'Concrete next steps, if any.',
+      items: { type: 'string' },
+    },
+    missingContext: {
+      type: 'array',
+      description: 'Important missing details that limit confidence.',
+      items: { type: 'string' },
+    },
+  },
+  required: ['headline', 'summary', 'sections', 'nextSteps', 'missingContext'],
+  additionalProperties: false,
+};
+
 export function getAiAction(actionId) {
   return AI_ACTIONS.find((action) => action.id === actionId);
+}
+
+export function formatAiStructuredOutput(output) {
+  if (!output) return '';
+
+  const lines = [];
+  if (output.headline) lines.push(`# ${output.headline}`);
+  if (output.summary) lines.push(output.summary);
+
+  for (const section of output.sections || []) {
+    if (section.heading) lines.push(`## ${section.heading}`);
+    if (section.body) lines.push(section.body);
+    for (const item of section.items || []) lines.push(`- ${item}`);
+  }
+
+  if (output.nextSteps?.length) {
+    lines.push('## Next steps');
+    for (const step of output.nextSteps) lines.push(`- ${step}`);
+  }
+
+  if (output.missingContext?.length) {
+    lines.push('## Missing context');
+    for (const item of output.missingContext) lines.push(`- ${item}`);
+  }
+
+  return lines.join('\n\n');
 }
