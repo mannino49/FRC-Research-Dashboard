@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import ai from './ai.mjs';
+import ai from '../../netlify/functions/ai.mjs';
 
 describe('AI endpoint', () => {
   it('rejects non-POST requests', async () => {
