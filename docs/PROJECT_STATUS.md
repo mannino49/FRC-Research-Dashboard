@@ -117,7 +117,7 @@ npm run build
 Current test count:
 
 ```text
-2 files, 4 tests passing
+4 files, 8 tests passing
 ```
 
 Known npm note:
@@ -166,9 +166,9 @@ Do not commit `.env` or `.env.local`.
 ## Recommended Next Steps
 
 1. Verify production login and edit persistence for both dashboard users.
-2. Add `OPENAI_API_KEY` to Netlify production environment variables.
-3. Verify the draft-outline AI workflow in production.
-4. Continue Phase 6 with abstract drafting and next-move suggestions.
+2. Verify the operational AI prompt workflow in production.
+3. Continue Phase 6 with project-level memory, paper/reference context, or Google Drive document indexing.
+4. Add abstract/manuscript drafting only after the dashboard has literature content to ground it.
 
 ## Phase 5 Preview
 
@@ -180,9 +180,10 @@ Likely next build items:
 
 ## Phase 6 Preview
 
-First AI workflow is a server-side draft-outline action:
+First AI workflow is a server-side project-operations assistant:
 
 - Browser sends project context and Supabase session token to `/api/ai`.
 - Netlify function verifies the Supabase user before calling OpenAI.
 - OpenAI API key remains server-side.
-- Generated outline is saved to `ai_outputs` as a draft artifact.
+- Suggested prompts cover project status, next action, stalled/waiting checks, collaborator follow-up emails, progress notes, and metadata cleanup.
+- Generated outputs are saved to `ai_outputs` as draft artifacts.

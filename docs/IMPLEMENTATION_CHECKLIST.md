@@ -98,14 +98,20 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
   - history
   - links
 - [ ] Add “Draft abstract” action.
-- [x] Add “Draft outline” action.
+- [x] Add operational suggested prompts:
+  - summarize project status
+  - recommend next action
+  - identify stalled/waiting projects
+  - draft collaborator follow-up email
+  - turn project history into a progress note
+  - flag missing metadata or broken organization
 - [ ] Add “Suggest collaborators” action.
 - [ ] Add “Suggest paper/project direction” action.
-- [ ] Add an in-app agent panel for project operations.
+- [x] Add an in-app agent panel for project operations.
 - [x] Save AI outputs to the project as draft artifacts or history entries.
 - [x] Add regenerate, copy, and save controls for AI outputs.
 - [x] Add clear system prompts for each AI workflow.
-- [ ] Add basic safety and quality constraints:
+- [x] Add basic safety and quality constraints:
   - cite uncertainty
   - avoid fabricated publication facts
   - ask for missing details when needed

@@ -1,7 +1,7 @@
 import { buildProjectContext, projectContextToPrompt } from './aiContext.js';
 import { getSupabaseAccessToken } from './supabaseClient.js';
 
-export async function draftProjectOutline(project, people) {
+export async function runProjectAiAction(project, people, actionId) {
   const context = buildProjectContext(project, people);
   const prompt = projectContextToPrompt(context);
   const accessToken = await getSupabaseAccessToken();
@@ -14,7 +14,7 @@ export async function draftProjectOutline(project, people) {
       authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
-      action: 'draft_outline',
+      action: actionId,
       context,
       prompt,
     }),

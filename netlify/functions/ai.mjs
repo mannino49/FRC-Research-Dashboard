@@ -1,3 +1,5 @@
+import { getAiAction } from '../../src/lib/aiActions.js';
+
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5.4-mini';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -41,14 +43,13 @@ function outputText(data) {
     .trim();
 }
 
-function outlineInstructions() {
+function workflowInstructions(action) {
   return [
     'You are an expert research operations assistant for the Flow Research Collective.',
     'Use only the supplied dashboard context. Do not invent publication facts, collaborators, citations, or file contents.',
-    'If details are missing, name the uncertainty and make the outline useful anyway.',
-    'Draft a concise, working outline that a researcher can edit.',
-    'Include: one-sentence thesis, 5-7 section outline, strongest open questions, and immediate next moves.',
+    'If details are missing, name the uncertainty and make the output useful anyway.',
     'Keep the tone serious, clear, and editorial rather than promotional.',
+    action.instruction,
   ].join(' ');
 }
 
@@ -57,13 +58,6 @@ export default async (req) => {
     return json({ error: 'method not allowed' }, { status: 405, headers: { allow: 'POST' } });
   }
 
-  if (!OPENAI_API_KEY) {
-    return json({ error: 'OPENAI_API_KEY is not configured.' }, { status: 500 });
-  }
-
-  const auth = await requireSupabaseUser(req);
-  if (auth.error) return json({ error: auth.error }, { status: auth.status });
-
   let body;
   try {
     body = await req.json();
@@ -71,8 +65,16 @@ export default async (req) => {
     return json({ error: 'invalid json' }, { status: 400 });
   }
 
-  if (body.action !== 'draft_outline') return json({ error: 'unsupported action' }, { status: 400 });
+  const action = getAiAction(body.action);
+  if (!action) return json({ error: 'unsupported action' }, { status: 400 });
   if (!body.prompt || !body.context?.title) return json({ error: 'missing project context' }, { status: 400 });
+
+  if (!OPENAI_API_KEY) {
+    return json({ error: 'OPENAI_API_KEY is not configured.' }, { status: 500 });
+  }
+
+  const auth = await requireSupabaseUser(req);
+  if (auth.error) return json({ error: auth.error }, { status: auth.status });
 
   const openaiResponse = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -83,7 +85,7 @@ export default async (req) => {
     body: JSON.stringify({
       model: MODEL,
       input: [
-        { role: 'system', content: outlineInstructions() },
+        { role: 'system', content: workflowInstructions(action) },
         { role: 'user', content: body.prompt },
       ],
       max_output_tokens: 1600,
@@ -97,7 +99,8 @@ export default async (req) => {
 
   return json({
     action: body.action,
-    outputType: 'outline',
+    outputType: action.outputType,
+    title: action.title,
     response: outputText(data),
     model: data.model || MODEL,
   });

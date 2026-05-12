@@ -1,5 +1,6 @@
 import React from 'react';
-import { draftProjectOutline } from '../lib/aiClient.js';
+import { AI_ACTIONS, getAiAction } from '../lib/aiActions.js';
+import { runProjectAiAction } from '../lib/aiClient.js';
 import { createAiOutputRecord } from '../lib/dashboardRepository.js';
 import { STATUSES, classNames, fmtDate, isMine, personById, typeMark, typeWord } from '../utils.js';
 
@@ -15,6 +16,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
   const [aiState, setAiState] = React.useState('idle');
   const [aiMessage, setAiMessage] = React.useState('');
   const [aiDraft, setAiDraft] = React.useState(null);
+  const [activeAiAction, setActiveAiAction] = React.useState(AI_ACTIONS[0].id);
 
   React.useEffect(() => {
     setNotesDraft(project?.notes || '');
@@ -24,6 +26,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
     setAiState('idle');
     setAiMessage('');
     setAiDraft(null);
+    setActiveAiAction(AI_ACTIONS[0].id);
   }, [project?.id, project?.notes]);
 
   React.useEffect(() => {
@@ -82,11 +85,13 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
     onDelete(p.id);
   }
 
-  async function draftOutline() {
+  async function runAiAction(actionId) {
+    const action = getAiAction(actionId);
+    setActiveAiAction(actionId);
     setAiState('working');
     setAiMessage('');
     try {
-      const result = await draftProjectOutline(p, people);
+      const result = await runProjectAiAction(p, people, actionId);
       setAiDraft(result);
       await createAiOutputRecord(p.id, {
         outputType: result.outputType,
@@ -95,7 +100,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
         model: result.model,
       });
       setAiState('ready');
-      setAiMessage('Draft artifact saved.');
+      setAiMessage(`${action?.title || 'AI output'} saved.`);
     } catch (error) {
       console.error(error);
       setAiState('error');
@@ -111,7 +116,8 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
 
   function promoteAiDraftToNotes() {
     if (!aiDraft?.response) return;
-    const nextNotes = [notesDraft.trim(), `AI draft outline\n\n${aiDraft.response}`].filter(Boolean).join('\n\n---\n\n');
+    const heading = aiDraft.title || getAiAction(activeAiAction)?.title || 'AI output';
+    const nextNotes = [notesDraft.trim(), `${heading}\n\n${aiDraft.response}`].filter(Boolean).join('\n\n---\n\n');
     setNotesDraft(nextNotes);
     onPatch(p.id, {
       notes: nextNotes,
@@ -284,16 +290,27 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
           <div className="ai-panel">
             <div className="ai-panel-head">
               <div>
-                <div className="lbl">AI draft artifact</div>
-                <p>Generate a working outline from this project&apos;s dashboard context.</p>
+                <div className="lbl">AI project assistant</div>
+                <p>Choose an operational prompt grounded only in this project&apos;s dashboard context.</p>
               </div>
-              <button onClick={draftOutline} disabled={aiState === 'working'}>
-                {aiState === 'working' ? 'Drafting…' : 'Draft outline'}
-              </button>
+            </div>
+            <div className="ai-prompts" aria-label="Suggested AI prompts">
+              {AI_ACTIONS.map((action) => (
+                <button
+                  key={action.id}
+                  className={activeAiAction === action.id ? 'active' : ''}
+                  onClick={() => runAiAction(action.id)}
+                  disabled={aiState === 'working'}
+                  title={action.description}
+                >
+                  {aiState === 'working' && activeAiAction === action.id ? action.verb : action.title}
+                </button>
+              ))}
             </div>
             {aiMessage && <div className={classNames('ai-message', aiState === 'error' && 'error')}>{aiMessage}</div>}
             {aiDraft?.response && (
               <div className="ai-output">
+                <div className="ai-output-title">{aiDraft.title || getAiAction(activeAiAction)?.title}</div>
                 <pre>{aiDraft.response}</pre>
                 <div className="ai-actions">
                   <span>{aiDraft.model}</span>
