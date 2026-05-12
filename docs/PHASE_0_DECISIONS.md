@@ -6,7 +6,7 @@ Phase 0 resolves the architectural choices that everything else depends on. The 
 
 **Recommendation: convert to a Vite/React app.**
 
-Current state:
+Original state:
 
 - `index.html` is the deployable root file.
 - `project/Research Dashboard.html` plus `project/*.jsx`, `project/*.js`, and `project/styles.css` are the modular prototype files.
@@ -33,9 +33,9 @@ Rationale:
 
 Current state:
 
-- Netlify Functions exist for `/api/projects` and `/api/people`.
+- Netlify Functions existed for `/api/projects` and `/api/people`.
 - They store whole JSON blobs in Netlify Blobs.
-- The frontend does not currently call them.
+- The frontend did not call them.
 
 Recommended target:
 
@@ -43,6 +43,11 @@ Recommended target:
 - Frontend reads/writes through a typed data access layer.
 - Server-side endpoints handle privileged operations and AI calls.
 - Existing Netlify Blob functions can be removed or kept temporarily as reference.
+
+Current result:
+
+- Supabase is the canonical production data store.
+- Netlify Blob functions have been retired.
 
 Rationale:
 

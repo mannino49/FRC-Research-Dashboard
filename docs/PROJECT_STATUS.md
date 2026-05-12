@@ -4,7 +4,7 @@ Last updated: 2026-05-12
 
 ## Current State
 
-The FRC Research Dashboard has been migrated from a static Claude Design prototype into a Vite/React app.
+The FRC Research Dashboard has been migrated from a static Claude Design prototype into a Vite/React app backed by Supabase.
 
 Canonical frontend source is now:
 
@@ -55,7 +55,7 @@ Implemented:
 
 ### Phase 2: Supabase Persistence Foundation
 
-Complete in code, not connected to a live Supabase project yet.
+Complete and connected in production.
 
 Implemented:
 
@@ -65,14 +65,10 @@ Implemented:
 - Seed-data fallback when Supabase env vars are missing.
 - Load/save path for people/projects.
 - Persist project creation, project updates, and history entries.
+- Persist collaborator creation and updates.
 - Supabase schema and setup docs.
-
-Needs live credentials before verification against Supabase:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- Supabase user account
-- optionally `SUPABASE_SERVICE_ROLE_KEY`
+- Netlify production build uses Supabase environment variables.
+- Legacy Netlify Blob functions have been retired.
 
 ### Phase 3: Data Model Expansion
 
@@ -166,32 +162,17 @@ Local secrets should go in:
 
 Do not commit `.env` or `.env.local`.
 
-## Current Git State
-
-Last pushed commit before Phase 2-4 work:
-
-```text
-f697ce0 Set up Vite app foundation
-```
-
-Phase 2, Phase 3, and Phase 4 changes are currently local unless committed/pushed after this status file was written.
-
 ## Recommended Next Steps
 
-1. Commit and push Phase 2-4 plus this status file.
-2. Connect a real Supabase project.
-3. Run `supabase/schema.sql` in Supabase.
-4. Create a dashboard user in Supabase Auth.
-5. Add `.env.local`.
-6. Seed Supabase from `src/data/seedData.js`.
-7. Verify login, loading, creation, updates, history, notes, links, and seed fallback.
-8. Continue to Phase 5: dashboard features.
+1. Verify production login and edit persistence for both dashboard users.
+2. Continue Phase 5 dashboard features.
+3. Add import/export for plug-and-play use.
+4. Add server-side AI endpoints and draft artifact workflows.
 
 ## Phase 5 Preview
 
 Likely next build items:
 
-- Dedicated create/edit collaborator flow.
 - Better project filtering/search beyond command palette.
 - Import/export for plug-and-play use.
 - Configurable people, categories, statuses, and project types.

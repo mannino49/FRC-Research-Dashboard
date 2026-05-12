@@ -14,14 +14,14 @@ The product concept is closer to an editorial desk or academic project ledger th
 4. Change project status.
 5. Pass the turn to another collaborator.
 6. Add a note/update that becomes the latest next action.
-7. Review external collaborators and the projects associated with them.
+7. Review collaborators and the projects associated with them.
 8. Create a new project seed.
 9. Jump quickly using the command palette.
 
 ## Screens
 
 - **Projects**: summary metrics, grouping controls, and project list.
-- **Collaborators**: external collaborator directory with related active projects.
+- **Collaborators**: internal/external collaborator directory with add/edit controls and related active projects.
 - **New project**: lightweight creation form.
 - **Project detail panel**: slide-over with facts, links, next action, note composer, and history.
 - **Command palette**: `Cmd/Ctrl+K` navigation across pages and projects.
@@ -32,8 +32,8 @@ The product concept is closer to an editorial desk or academic project ledger th
 The current frontend is intentionally simple:
 
 - React 18 runs through Vite.
-- Application state lives in React state.
-- Seed data lives in `src/data/seedData.js`.
+- Application state lives in React state and persists through Supabase.
+- Fallback seed data lives in `src/data/seedData.js`.
 - Helper functions and components are module imports.
 - Page routing is internal state, persisted only as `localStorage["frc.page"]`.
 
@@ -46,30 +46,22 @@ New frontend behavior should be added in `src/`.
 
 ## Backend Status
 
-Netlify Functions exist but are not currently used by the frontend.
+Supabase is the canonical production data store.
 
-- `GET /api/projects` returns the stored project array, or `null`.
-- `PUT /api/projects` replaces the stored project array.
-- `GET /api/people` returns the stored people object map, or `null`.
-- `PUT /api/people` replaces the stored people object map.
-
-Storage uses Netlify Blobs with strong consistency in the `frc-dashboard` store.
+- Supabase Auth gates dashboard access.
+- `people`, `projects`, `project_links`, and `project_history` are read and written by the frontend data repository.
+- `project_notes` and `ai_outputs` are prepared for later workflows.
+- The old Netlify Blob functions have been retired.
 
 ## Notable Gaps
 
-- Frontend edits are not persisted after refresh.
 - There is only a starter helper test suite so far.
-- New project IDs are random and could collide.
-- People cannot yet be created or edited in the UI.
+- New projects use UUIDs.
 - Links are placeholders in seed data.
-- Authentication/authorization is not present.
+- Project notes are still a single project-level field; threaded notes are not built yet.
 
 ## Likely Next Additions
 
-- Wire frontend state to `/api/projects` and `/api/people`.
-- Add optimistic save/error states.
 - Continue extending the canonical Vite/React source path.
-- Add collaborator management.
-- Add durable project links and link editing.
 - Add filtering/search beyond the command palette.
 - Add a small test suite around data transforms and persistence calls.

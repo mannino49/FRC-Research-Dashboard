@@ -6,10 +6,6 @@
 .
 ├── index.html
 ├── netlify.toml
-├── netlify/
-│   └── functions/
-│       ├── people.mjs
-│       └── projects.mjs
 ├── package.json
 ├── vite.config.js
 ├── src/
@@ -49,7 +45,7 @@ The app will usually be available at:
 http://localhost:5173
 ```
 
-For local API routes, run through Netlify CLI instead of the plain Vite server once the frontend starts calling server functions.
+When Supabase env vars are present, the app requires sign-in and reads/writes Supabase. Without those env vars, it falls back to `src/data/seedData.js`.
 
 ## Scripts
 
@@ -71,7 +67,7 @@ Runtime/build dependencies:
 - Vite
 - Vitest
 - `@vitejs/plugin-react`
-- `@netlify/blobs` for the existing Netlify Functions
+- `@supabase/supabase-js`
 
 Fonts are still loaded in `index.html` from Google Fonts:
 
@@ -88,18 +84,17 @@ The old `project/` directory is retained as historical prototype reference. New 
 
 `App` initializes:
 
-- `projects` from `src/data/seedData.js`
-- `people` from `src/data/seedData.js`
+- `projects` and `people` from Supabase when configured
+- fallback `projects` and `people` from `src/data/seedData.js`
 - page from `localStorage["frc.page"]`
 - visual tweaks from inline defaults
 
-Project mutations are still local React state updates:
+Project and collaborator mutations optimistically update local React state and persist to Supabase:
 
 - `patchProject(id, patch)`
 - `appendHistory(id, entry)`
 - `createProject(project)`
-
-These functions do not yet call Supabase. That begins in Phase 2.
+- `savePerson(id, person, mode)`
 
 ## Keyboard Shortcuts
 
@@ -117,10 +112,6 @@ These functions do not yet call Supabase. That begins in Phase 2.
 [build]
   command = "npm run build"
   publish = "dist"
-
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
 ```
 
-The existing Netlify Functions remain available, but Phase 2 will move canonical persistence to Supabase.
+Production uses Supabase environment variables in Netlify. The old Netlify Blob functions have been retired.

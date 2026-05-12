@@ -2,14 +2,14 @@
 
 A lightweight research and project dashboard for tracking FRC papers, collaborations, applied projects, collaborators, next actions, and handoffs.
 
-The current app is a Vite/React dashboard that uses browser-side seed data by default. Netlify Functions from the original prototype remain in the repo, but the planned canonical persistence layer is Supabase.
+The current app is a Vite/React dashboard backed by Supabase. Browser-side seed data remains as a fallback for unconfigured local development.
 
 ## Current Shape
 
 - `src/` is the canonical Vite/React frontend source.
-- `src/data/seedData.js` contains the current seed people and project records.
+- `src/data/seedData.js` mirrors the live dashboard data as a local fallback.
 - `project/` contains the historical Claude Design prototype.
-- `netlify/functions/projects.mjs` and `netlify/functions/people.mjs` expose legacy JSON persistence endpoints.
+- Supabase is the canonical persistence layer for people, projects, links, and history.
 - `netlify.toml` builds the Vite app and publishes `dist`.
 
 ## Documentation

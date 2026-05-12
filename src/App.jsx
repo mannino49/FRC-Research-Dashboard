@@ -4,7 +4,15 @@ import Home from './components/Home.jsx';
 import Palette from './components/Palette.jsx';
 import { NewProject, People } from './components/Pages.jsx';
 import { PEOPLE, PROJECTS } from './data/seedData.js';
-import { appendHistoryRecord, createProjectRecord, loadDashboardData, replaceProjectLinksRecord, updateProjectRecord } from './lib/dashboardRepository.js';
+import {
+  appendHistoryRecord,
+  createPersonRecord,
+  createProjectRecord,
+  loadDashboardData,
+  replaceProjectLinksRecord,
+  updatePersonRecord,
+  updateProjectRecord,
+} from './lib/dashboardRepository.js';
 import { classNames } from './utils.js';
 
 export default function App() {
@@ -165,6 +173,27 @@ export default function App() {
     }
   }
 
+  async function savePerson(id, person, mode) {
+    const previous = people;
+    setPeople((current) => ({
+      ...current,
+      [id]: person,
+    }));
+    setSaveState('saving');
+
+    try {
+      if (mode === 'create') await createPersonRecord(id, person);
+      else await updatePersonRecord(id, person);
+      setSaveState('saved');
+      flashToast(mode === 'create' ? 'Collaborator added' : 'Collaborator updated');
+    } catch (error) {
+      console.error(error);
+      setPeople(previous);
+      setSaveState('error');
+      flashToast('Collaborator save failed');
+    }
+  }
+
   const selected = projects.find((p) => p.id === selectedId);
   const todayStr = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
@@ -196,7 +225,9 @@ export default function App() {
         <a className={page === 'people' ? 'active' : ''} onClick={() => { setPage('people'); setSelectedId(null); }}>Collaborators</a>
         <a className={page === 'new' ? 'active' : ''} onClick={() => { setPage('new'); setSelectedId(null); }}>New project</a>
         <span className="spacer" />
-        <span className="kbd">{sourceLabel(dataSource, saveState)}</span>
+        <span className={classNames('source-pill', dataSource === 'supabase' && 'live', dataSource === 'seed' && 'fallback')}>
+          {sourceLabel(dataSource, saveState)}
+        </span>
         <span className="kbd">press <kbd>⌘K</kbd> to jump · <kbd>g h</kbd> home · <kbd>g n</kbd> new · <kbd>g c</kbd> co-authors</span>
       </nav>
 
@@ -226,7 +257,7 @@ export default function App() {
         </>
       )}
 
-      {page === 'people' && <People people={people} projects={projects} onOpenProject={setSelectedId} />}
+      {page === 'people' && <People people={people} projects={projects} onOpenProject={setSelectedId} onSavePerson={savePerson} />}
       {page === 'new' && <NewProject people={people} onCreate={createProject} onCancel={() => setPage('home')} />}
 
       {selected && (
@@ -293,14 +324,14 @@ export default function App() {
 }
 
 function saveLabel(saveState) {
-  if (saveState === 'saving') return 'saving…';
+  if (saveState === 'saving') return 'saving';
   if (saveState === 'saved') return 'saved';
   if (saveState === 'error') return 'save error';
-  return 'supabase';
+  return 'connected';
 }
 
 function sourceLabel(dataSource, saveState) {
   if (dataSource === 'loading') return 'loading data…';
-  if (dataSource === 'supabase') return saveLabel(saveState);
-  return 'local seed data';
+  if (dataSource === 'supabase') return `Supabase · ${saveLabel(saveState)}`;
+  return 'Fallback seed data';
 }

@@ -1,53 +1,192 @@
 import React from 'react';
 import { TYPES, classNames, personById, typeMark, typeWord } from '../utils.js';
 
-export function People({ people, projects, onOpenProject }) {
-  const all = Object.entries(people).filter(([, p]) => p.kind === 'external');
+export function People({ people, projects, onOpenProject, onSavePerson }) {
+  const [editingId, setEditingId] = React.useState(null);
+  const external = Object.entries(people).filter(([, p]) => p.kind === 'external');
+  const internal = Object.entries(people).filter(([, p]) => p.kind === 'internal');
+  const editingPerson = editingId ? people[editingId] : null;
+
   function projectsOf(id) {
-    return projects.filter((p) => p.coauthors.includes(id));
+    return projects.filter((p) => p.turn === id || p.waitingOn === id || p.coauthors.includes(id));
   }
   function activeOf(id) {
-    return projects.filter((p) => p.coauthors.includes(id) && p.turn === id);
+    return projects.filter((p) => p.turn === id);
+  }
+
+  function save(id, person, mode) {
+    onSavePerson(id, person, mode);
+    setEditingId(null);
   }
 
   return (
     <section className="people">
       <div className="section-head" style={{ paddingTop: 28 }}>
         <span className="numeral">I.</span>
-        <span className="title">External co-authors</span>
-        <span className="count">{all.length} people</span>
+        <span className="title">Collaborators</span>
+        <span className="count">{external.length + internal.length} people</span>
       </div>
-      {all.map(([id, pr]) => {
-        const ps = projectsOf(id);
-        const acts = activeOf(id);
-        return (
-          <div className="person" key={id} onClick={() => ps[0] && onOpenProject(ps[0].id)}>
-            <span className="init">{pr.initials}</span>
-            <span className="nm">
-              <div className="n">{pr.name}</div>
-              <div className="aff">{pr.affil}</div>
-              {pr.scholarUrl && (
-                <a className="person-link" href={pr.scholarUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                  Google Scholar
-                </a>
-              )}
-            </span>
-            <span className="projs">
-              {ps.length} {ps.length === 1 ? 'project' : 'projects'}
-              {ps.length > 0 && (
-                <div style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', color: 'var(--ink-2)', textTransform: 'none', letterSpacing: 0, fontSize: 'var(--fs-sm)', marginTop: 4 }}>
-                  {ps.map((p) => p.title).slice(0, 2).join(' · ')}
-                  {ps.length > 2 ? ` · +${ps.length - 2}` : ''}
-                </div>
-              )}
-            </span>
-            <span className="active">
-              {acts.length > 0 ? <span className="now">→ their turn on {acts.length}</span> : <span style={{ color: 'var(--ink-4)' }}>—</span>}
-            </span>
-          </div>
-        );
-      })}
+      <PersonForm
+        people={people}
+        personId={editingId}
+        person={editingPerson}
+        onCancel={() => setEditingId(null)}
+        onSave={save}
+      />
+      {internal.length > 0 && (
+        <div className="people-kicker">Internal</div>
+      )}
+      {internal.map(([id, pr]) => (
+        <PersonRow
+          key={id}
+          id={id}
+          person={pr}
+          projects={projectsOf(id)}
+          activeProjects={activeOf(id)}
+          onOpenProject={onOpenProject}
+          onEdit={setEditingId}
+        />
+      ))}
+      {external.length > 0 && (
+        <div className="people-kicker">External</div>
+      )}
+      {external.map(([id, pr]) => (
+        <PersonRow
+          key={id}
+          id={id}
+          person={pr}
+          projects={projectsOf(id)}
+          activeProjects={activeOf(id)}
+          onOpenProject={onOpenProject}
+          onEdit={setEditingId}
+        />
+      ))}
     </section>
+  );
+}
+
+function PersonRow({ id, person: pr, projects, activeProjects, onOpenProject, onEdit }) {
+  return (
+    <div className="person" onClick={() => projects[0] && onOpenProject(projects[0].id)}>
+      <span className="init">{pr.initials}</span>
+      <span className="nm">
+        <div className="n">{pr.name}</div>
+        <div className="aff">{pr.affil || (pr.kind === 'internal' ? 'FRC' : 'External collaborator')}</div>
+        {pr.scholarUrl && (
+          <a className="person-link" href={pr.scholarUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+            Google Scholar
+          </a>
+        )}
+      </span>
+      <span className="projs">
+        {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+        {projects.length > 0 && (
+          <div style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', color: 'var(--ink-2)', textTransform: 'none', letterSpacing: 0, fontSize: 'var(--fs-sm)', marginTop: 4 }}>
+            {projects.map((p) => p.title).slice(0, 2).join(' · ')}
+            {projects.length > 2 ? ` · +${projects.length - 2}` : ''}
+          </div>
+        )}
+      </span>
+      <span className="active">
+        {activeProjects.length > 0 ? <span className="now">→ their turn on {activeProjects.length}</span> : <span style={{ color: 'var(--ink-4)' }}>—</span>}
+        <button
+          className="mini-edit"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(id);
+          }}
+        >
+          Edit
+        </button>
+      </span>
+    </div>
+  );
+}
+
+function PersonForm({ people, personId, person, onCancel, onSave }) {
+  const [id, setId] = React.useState('');
+  const [initials, setInitials] = React.useState('');
+  const [name, setName] = React.useState('');
+  const [kind, setKind] = React.useState('external');
+  const [affil, setAffil] = React.useState('');
+  const [scholarUrl, setScholarUrl] = React.useState('');
+  const [message, setMessage] = React.useState('');
+
+  React.useEffect(() => {
+    setId(personId || '');
+    setInitials(person?.initials || '');
+    setName(person?.name || '');
+    setKind(person?.kind || 'external');
+    setAffil(person?.affil || '');
+    setScholarUrl(person?.scholarUrl || '');
+    setMessage('');
+  }, [personId, person]);
+
+  function submit(e) {
+    e.preventDefault();
+    const nextId = (personId || id || initials).trim().toUpperCase();
+    const nextInitials = initials.trim().toUpperCase();
+    if (!nextId || !nextInitials || !name.trim()) {
+      setMessage('Initials and name are required.');
+      return;
+    }
+    if (!personId && people[nextId]) {
+      setMessage('Those initials already exist.');
+      return;
+    }
+    onSave(nextId, {
+      initials: nextInitials,
+      name: name.trim(),
+      kind,
+      affil: affil.trim(),
+      scholarUrl: scholarUrl.trim(),
+    }, personId ? 'update' : 'create');
+    if (!personId) {
+      setId('');
+      setInitials('');
+      setName('');
+      setKind('external');
+      setAffil('');
+      setScholarUrl('');
+    }
+  }
+
+  return (
+    <form className="person-form" onSubmit={submit}>
+      <div className="person-form-head">
+        <span>{personId ? `Editing ${personId}` : 'Add collaborator'}</span>
+        {personId && <button type="button" onClick={onCancel}>Cancel</button>}
+      </div>
+      <div className="person-form-grid">
+        <label>
+          Initials
+          <input value={initials} onChange={(e) => setInitials(e.target.value)} placeholder="MB" disabled={Boolean(personId)} />
+        </label>
+        <label>
+          Name
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Marcelo Bigliassi" />
+        </label>
+        <label>
+          Type
+          <select value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="external">External</option>
+            <option value="internal">Internal</option>
+          </select>
+        </label>
+        <label>
+          Affiliation
+          <input value={affil} onChange={(e) => setAffil(e.target.value)} placeholder="University, lab, or role" />
+        </label>
+        <label className="wide">
+          Profile URL
+          <input value={scholarUrl} onChange={(e) => setScholarUrl(e.target.value)} placeholder="https://scholar.google.com/..." />
+        </label>
+        <div className="person-form-actions">
+          {message && <span>{message}</span>}
+          <button type="submit">{personId ? 'Save collaborator' : 'Add collaborator'}</button>
+        </div>
+      </div>
+    </form>
   );
 }
 

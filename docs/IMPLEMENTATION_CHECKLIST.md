@@ -48,7 +48,7 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 - [x] Add loading, saving, saved, and error states.
 - [x] Add optimistic updates with rollback or retry for failed saves.
 - [x] Decide whether to retire or keep the existing Netlify Blob functions.
-  - Decision: keep them temporarily as legacy reference until Supabase is live with real data.
+  - Decision: retired after production moved to Supabase.
 
 ## Phase 3: Data Model Expansion
 
@@ -75,11 +75,11 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 
 ## Phase 5: Dashboard Features
 
-- [ ] Make journal/venue clickable where a venue URL exists.
-- [ ] Add a dedicated notes section to the project detail panel.
+- [x] Make journal/venue clickable where a venue URL exists.
+- [x] Add a dedicated notes section to the project detail panel.
 - [ ] Add create/edit/delete behavior for project notes.
-- [ ] Add project link editing.
-- [ ] Add collaborator create/edit flow.
+- [x] Add project link editing.
+- [x] Add collaborator create/edit flow.
 - [ ] Add project filtering/search beyond the command palette.
 - [ ] Add import/export for plug-and-play use.
 - [ ] Add configurable people, categories, statuses, and project types.

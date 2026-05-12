@@ -50,6 +50,17 @@ function peopleMap(rows) {
   );
 }
 
+function personPayload(id, person) {
+  return {
+    id,
+    initials: person.initials,
+    name: person.name,
+    kind: person.kind,
+    affiliation: person.affil || null,
+    scholar_url: person.scholarUrl || null,
+  };
+}
+
 function projectsFromRows(projectRows, historyRows, linkRows) {
   const historyByProject = groupBy(historyRows, (entry) => entry.project_id);
   const linksByProject = groupBy(linkRows, (link) => link.project_id);
@@ -174,6 +185,20 @@ export async function createProjectRecord(project) {
     const linkResult = await supabase.from('project_links').insert(linkRows);
     if (linkResult.error) throw linkResult.error;
   }
+}
+
+export async function createPersonRecord(id, person) {
+  if (!isSupabaseConfigured) return;
+
+  const { error } = await supabase.from('people').insert(personPayload(id, person));
+  if (error) throw error;
+}
+
+export async function updatePersonRecord(id, person) {
+  if (!isSupabaseConfigured) return;
+
+  const { error } = await supabase.from('people').update(personPayload(id, person)).eq('id', id);
+  if (error) throw error;
 }
 
 export async function updateProjectRecord(id, patch) {
