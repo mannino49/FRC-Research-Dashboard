@@ -81,7 +81,7 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 - [ ] Add create/edit/delete behavior for project notes.
 - [x] Add project link editing.
 - [x] Add collaborator create/edit flow.
-- [ ] Add project filtering/search beyond the command palette.
+- [x] Add project filtering/search beyond the command palette.
 - [ ] Add import/export for plug-and-play use.
 - [ ] Add configurable people, categories, statuses, and project types.
 

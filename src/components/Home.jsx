@@ -96,6 +96,13 @@ export default function Home({ people, projects, onOpen, grouping, onPatch, onHi
         </div>
       </section>
 
+      {projects.length === 0 && (
+        <div className="empty-state">
+          <div className="sc">No matching projects</div>
+          <p>Adjust the search or filters to widen the ledger.</p>
+        </div>
+      )}
+
       {groups.map((g) => (
         <section key={g.key}>
           <div className="section-head">

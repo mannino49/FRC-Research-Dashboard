@@ -25,6 +25,7 @@ Use `src/` for all new development.
 - Frontend: Vite + React.
 - Data store: Supabase.
 - Auth: Supabase Auth, private dashboard with authenticated editing.
+- Paper files: keep drafts, PDFs, and Drive-native version history in Google Drive; use Supabase as the structured dashboard index and workflow state.
 - AI: OpenAI calls must happen server-side only.
 - AI outputs: save as draft artifacts first, with controls to promote into notes/history later.
 
@@ -173,7 +174,6 @@ Do not commit `.env` or `.env.local`.
 
 Likely next build items:
 
-- Better project filtering/search beyond command palette.
 - Import/export for plug-and-play use.
 - Configurable people, categories, statuses, and project types.
 - More polished notes and link editing.
