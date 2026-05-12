@@ -104,6 +104,9 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 - [x] Add manuscript draft/version memory linked to Google Drive.
 - [x] Add writing prompts for manuscript status and next paragraph drafting.
 - [x] Add external reference search and save-to-memory flow.
+- [x] Add Research Drive index table for Drive-wide document search.
+- [x] Add server-side Drive sync endpoint for Google Docs and Word docs.
+- [x] Add Drive AI page for syncing and asking questions across the indexed Research Drive.
 - [ ] Add “Draft abstract” action.
 - [x] Add operational suggested prompts:
   - summarize project status

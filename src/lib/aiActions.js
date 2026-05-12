@@ -72,6 +72,15 @@ export const AI_ACTIONS = [
       'Draft one polished next paragraph for the manuscript using only the supplied project, manuscript, and research-memory context. Include a brief note on where the paragraph belongs. If the context is insufficient, write a cautious bridging paragraph and clearly list what source/context is needed before using it in a real manuscript.',
   },
   {
+    id: 'ask_manuscript_question',
+    title: 'Ask about latest draft',
+    verb: 'Answering...',
+    outputType: 'manuscript_question',
+    description: 'Answer a custom question using the latest synced manuscript draft.',
+    instruction:
+      'Answer the user question using the latest synced manuscript text, manuscript version memory, project context, and research memory. If the draft text is unavailable, say that the manuscript needs to be synced first. Cite uncertainty and do not invent text that is not present.',
+  },
+  {
     id: 'suggest_reference_papers',
     title: 'Suggest reference papers to search',
     verb: 'Suggesting...',

@@ -170,6 +170,26 @@ AI writing prompts use these draft summaries, not the Drive file contents themse
 
 The dashboard can search scholarly metadata through a server-side paper-search function. Search results can be saved into project research memory as `to-read` references. Each saved candidate should still be reviewed before use in a manuscript or bibliography.
 
+## Research Drive Index
+
+The Research Drive index is the simple “agent reads the whole Drive” layer.
+
+### `drive_documents`
+
+- `file_id`: Google Drive file ID.
+- `name`: file name.
+- `mime_type`: Google Drive MIME type.
+- `web_url`: Drive or Google Docs URL.
+- `folder_path`: folder path under the configured Research Drive root.
+- `modified_at`: Google Drive modified timestamp.
+- `project_guess`: inferred project/paper from folder and filename.
+- `version_guess`: inferred version from filename and modified time.
+- `text_content`: extracted document text.
+- `text_excerpt`: shorter preview for dashboard lists.
+- `indexed_at`: last time the index row was updated.
+
+The dashboard sync uses Google Drive as the file source of truth, extracts supported Google Docs / Word docs, and stores the searchable text in Supabase so AI can answer questions without the user pasting links manually.
+
 ## API Payloads
 
 `PUT /api/projects` expects the full projects array.

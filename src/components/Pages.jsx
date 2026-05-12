@@ -1,4 +1,5 @@
 import React from 'react';
+import { askResearchDrive, syncResearchDrive } from '../lib/driveClient.js';
 import { TYPES, classNames, personById, typeMark, typeWord } from '../utils.js';
 
 export function People({ people, projects, onOpenProject, onSavePerson }) {
@@ -307,5 +308,130 @@ export function NewProject({ people, onCreate, onCancel }) {
         <span className="ghost" style={{ cursor: 'pointer' }} onClick={onCancel}>or cancel (esc)</span>
       </div>
     </div>
+  );
+}
+
+export function DriveIndex({ documents, onRefresh }) {
+  const [syncState, setSyncState] = React.useState('idle');
+  const [message, setMessage] = React.useState('');
+  const [question, setQuestion] = React.useState('');
+  const [answerState, setAnswerState] = React.useState('idle');
+  const [answer, setAnswer] = React.useState(null);
+
+  async function sync() {
+    setSyncState('working');
+    setMessage('');
+    try {
+      const result = await syncResearchDrive();
+      setMessage(`Indexed ${result.indexed} files. Skipped ${result.skipped}.`);
+      setSyncState('ready');
+      await onRefresh();
+    } catch (error) {
+      console.error(error);
+      setMessage(error.message || 'Research Drive sync failed.');
+      setSyncState('error');
+    }
+  }
+
+  async function ask() {
+    if (question.trim().length < 3) return;
+    setAnswerState('working');
+    setAnswer(null);
+    try {
+      const result = await askResearchDrive(question.trim());
+      setAnswer(result);
+      setAnswerState('ready');
+    } catch (error) {
+      console.error(error);
+      setAnswer({ error: error.message || 'Research Drive question failed.' });
+      setAnswerState('error');
+    }
+  }
+
+  return (
+    <section className="drive-page">
+      <div className="section-head" style={{ paddingTop: 28 }}>
+        <span className="numeral">III.</span>
+        <span className="title">Research Drive</span>
+        <span className="count">{documents.length} indexed files</span>
+      </div>
+
+      <div className="drive-hero">
+        <div>
+          <h2>Ask the agent about the whole Research Drive.</h2>
+          <p>Sync scans the Drive folder, extracts Google Docs and Word drafts, stores an index in Supabase, then AI answers from that index.</p>
+        </div>
+        <button onClick={sync} disabled={syncState === 'working'}>
+          {syncState === 'working' ? 'Syncing...' : 'Sync Research Drive'}
+        </button>
+      </div>
+
+      {message && <div className={classNames('ai-message', syncState === 'error' && 'error')}>{message}</div>}
+
+      <div className="drive-ask">
+        <textarea
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Ask: What is the latest AI moral cognition draft? Summarize the Ketamine paper. Which draft should we work on next?"
+        />
+        <button onClick={ask} disabled={answerState === 'working' || question.trim().length < 3}>
+          {answerState === 'working' ? 'Asking...' : 'Ask Drive'}
+        </button>
+      </div>
+
+      {answer?.error && <div className="ai-message error">{answer.error}</div>}
+      {answer?.response && (
+        <div className="drive-answer">
+          {answer.structured ? (
+            <div className="ai-structured">
+              {answer.structured.headline && <h3>{answer.structured.headline}</h3>}
+              {answer.structured.summary && <p>{answer.structured.summary}</p>}
+              {(answer.structured.sections || []).map((section) => (
+                <section key={section.heading}>
+                  <h4>{section.heading}</h4>
+                  {section.body && <p>{section.body}</p>}
+                  {section.items?.length ? <ul>{section.items.map((item) => <li key={item}>{item}</li>)}</ul> : null}
+                </section>
+              ))}
+              {answer.structured.nextSteps?.length ? (
+                <section>
+                  <h4>Next steps</h4>
+                  <ul>{answer.structured.nextSteps.map((step) => <li key={step}>{step}</li>)}</ul>
+                </section>
+              ) : null}
+              {answer.structured.missingContext?.length ? (
+                <section>
+                  <h4>Missing context</h4>
+                  <ul>{answer.structured.missingContext.map((item) => <li key={item}>{item}</li>)}</ul>
+                </section>
+              ) : null}
+            </div>
+          ) : (
+            <pre>{answer.response}</pre>
+          )}
+          {answer.documentsUsed?.length ? (
+            <div className="drive-used">
+              <span>Files used</span>
+              {answer.documentsUsed.map((doc) => (
+                <a key={doc.fileId} href={doc.url} target="_blank" rel="noreferrer">{doc.name}</a>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      <div className="drive-docs">
+        {documents.map((doc) => (
+          <article key={doc.fileId} className="drive-doc">
+            <div>
+              <h3>{doc.name}</h3>
+              <p>{[doc.projectGuess, doc.versionGuess, doc.modifiedAt?.slice(0, 10)].filter(Boolean).join(' · ')}</p>
+              {doc.excerpt && <p className="abstract-preview">{doc.excerpt.slice(0, 280)}{doc.excerpt.length > 280 ? '...' : ''}</p>}
+            </div>
+            <a href={doc.url} target="_blank" rel="noreferrer">Open</a>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }

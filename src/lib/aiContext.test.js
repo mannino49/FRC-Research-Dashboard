@@ -70,6 +70,7 @@ describe('AI project context', () => {
       'flag_missing_metadata',
       'summarize_manuscript_status',
       'write_next_paragraph',
+      'ask_manuscript_question',
       'suggest_reference_papers',
     ]);
     expect(getAiAction('draft_followup_email')?.instruction).toContain('subject line');

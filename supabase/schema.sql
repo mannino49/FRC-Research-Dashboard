@@ -107,16 +107,32 @@ create table if not exists public.manuscript_drafts (
   section_label text,
   summary text not null default '',
   open_tasks text not null default '',
+  draft_text text not null default '',
+  synced_at timestamptz,
   last_edited_on date,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+create table if not exists public.drive_documents (
+  file_id text primary key,
+  name text not null,
+  mime_type text not null,
+  web_url text not null,
+  folder_path text not null default '',
+  modified_at timestamptz,
+  project_guess text,
+  version_guess text,
+  text_content text not null default '',
+  text_excerpt text not null default '',
+  indexed_at timestamptz not null default now()
 );
 
 create table if not exists public.ai_outputs (
   id uuid primary key default gen_random_uuid(),
   project_id text references public.projects(id) on delete cascade,
   person_id text references public.people(id),
-  output_type text not null check (output_type in ('abstract', 'outline', 'collaborator_suggestions', 'project_direction', 'status_summary', 'next_action', 'stalled_waiting_check', 'followup_email', 'progress_note', 'metadata_audit', 'manuscript_status', 'next_paragraph', 'reference_suggestions')),
+  output_type text not null check (output_type in ('abstract', 'outline', 'collaborator_suggestions', 'project_direction', 'status_summary', 'next_action', 'stalled_waiting_check', 'followup_email', 'progress_note', 'metadata_audit', 'manuscript_status', 'next_paragraph', 'manuscript_question', 'reference_suggestions')),
   prompt text not null,
   response text not null,
   model text,
@@ -125,7 +141,7 @@ create table if not exists public.ai_outputs (
 
 alter table public.ai_outputs drop constraint if exists ai_outputs_output_type_check;
 alter table public.ai_outputs add constraint ai_outputs_output_type_check
-  check (output_type in ('abstract', 'outline', 'collaborator_suggestions', 'project_direction', 'status_summary', 'next_action', 'stalled_waiting_check', 'followup_email', 'progress_note', 'metadata_audit', 'manuscript_status', 'next_paragraph', 'reference_suggestions'));
+  check (output_type in ('abstract', 'outline', 'collaborator_suggestions', 'project_direction', 'status_summary', 'next_action', 'stalled_waiting_check', 'followup_email', 'progress_note', 'metadata_audit', 'manuscript_status', 'next_paragraph', 'manuscript_question', 'reference_suggestions'));
 
 create or replace function public.set_updated_at()
 returns trigger as $$
@@ -160,6 +176,19 @@ create trigger set_manuscript_drafts_updated_at
   before update on public.manuscript_drafts
   for each row execute function public.set_updated_at();
 
+create or replace function public.set_indexed_at()
+returns trigger as $$
+begin
+  new.indexed_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists set_drive_documents_indexed_at on public.drive_documents;
+create trigger set_drive_documents_indexed_at
+  before update on public.drive_documents
+  for each row execute function public.set_indexed_at();
+
 alter table public.people enable row level security;
 alter table public.projects enable row level security;
 alter table public.project_links enable row level security;
@@ -168,6 +197,7 @@ alter table public.project_notes enable row level security;
 alter table public.research_papers enable row level security;
 alter table public.project_papers enable row level security;
 alter table public.manuscript_drafts enable row level security;
+alter table public.drive_documents enable row level security;
 alter table public.ai_outputs enable row level security;
 
 drop policy if exists "Authenticated users can read people" on public.people;
@@ -186,6 +216,8 @@ drop policy if exists "Authenticated users can read project papers" on public.pr
 drop policy if exists "Authenticated users can write project papers" on public.project_papers;
 drop policy if exists "Authenticated users can read manuscript drafts" on public.manuscript_drafts;
 drop policy if exists "Authenticated users can write manuscript drafts" on public.manuscript_drafts;
+drop policy if exists "Authenticated users can read drive documents" on public.drive_documents;
+drop policy if exists "Authenticated users can write drive documents" on public.drive_documents;
 drop policy if exists "Authenticated users can read ai outputs" on public.ai_outputs;
 drop policy if exists "Authenticated users can write ai outputs" on public.ai_outputs;
 
@@ -273,6 +305,17 @@ create policy "Authenticated users can read manuscript drafts"
 
 create policy "Authenticated users can write manuscript drafts"
   on public.manuscript_drafts for all
+  to authenticated
+  using (true)
+  with check (true);
+
+create policy "Authenticated users can read drive documents"
+  on public.drive_documents for select
+  to authenticated
+  using (true);
+
+create policy "Authenticated users can write drive documents"
+  on public.drive_documents for all
   to authenticated
   using (true)
   with check (true);

@@ -3,7 +3,7 @@ import Detail from './components/Detail.jsx';
 import Home from './components/Home.jsx';
 import { ExternalLinkIcon } from './components/Icons.jsx';
 import Palette from './components/Palette.jsx';
-import { NewProject, People } from './components/Pages.jsx';
+import { DriveIndex, NewProject, People } from './components/Pages.jsx';
 import { RESEARCH_DRIVE_URL } from './constants.js';
 import { PEOPLE, PROJECTS } from './data/seedData.js';
 import {
@@ -15,6 +15,7 @@ import {
   deleteManuscriptDraftRecord,
   deleteProjectRecord,
   loadDashboardData,
+  loadDriveDocuments,
   replaceProjectLinksRecord,
   unlinkResearchPaperFromProject,
   updatePersonRecord,
@@ -43,6 +44,7 @@ export default function App() {
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [typeFilter, setTypeFilter] = React.useState('all');
   const [turnFilter, setTurnFilter] = React.useState('all');
+  const [driveDocuments, setDriveDocuments] = React.useState([]);
 
   React.useEffect(() => {
     let alive = true;
@@ -66,6 +68,12 @@ export default function App() {
     return () => {
       alive = false;
     };
+  }, []);
+
+  React.useEffect(() => {
+    refreshDriveDocuments().catch((error) => {
+      console.error(error);
+    });
   }, []);
 
   React.useEffect(() => {
@@ -314,6 +322,11 @@ export default function App() {
     }
   }
 
+  async function refreshDriveDocuments() {
+    const docs = await loadDriveDocuments();
+    setDriveDocuments(docs);
+  }
+
   const selected = projects.find((p) => p.id === selectedId);
   const turnOptions = React.useMemo(() => {
     const ids = new Set(['MM', 'SK']);
@@ -385,6 +398,7 @@ export default function App() {
         <a className={page === 'home' ? 'active' : ''} onClick={() => { setPage('home'); setSelectedId(null); }}>Projects</a>
         <a className={page === 'people' ? 'active' : ''} onClick={() => { setPage('people'); setSelectedId(null); }}>Collaborators</a>
         <a className={page === 'new' ? 'active' : ''} onClick={() => { setPage('new'); setSelectedId(null); }}>New project</a>
+        <a className={page === 'drive' ? 'active' : ''} onClick={() => { setPage('drive'); setSelectedId(null); }}>Drive AI</a>
         <a className="external-nav" href={RESEARCH_DRIVE_URL} target="_blank" rel="noopener noreferrer">
           Research Drive
           <ExternalLinkIcon />
@@ -469,6 +483,7 @@ export default function App() {
 
       {page === 'people' && <People people={people} projects={projects} onOpenProject={setSelectedId} onSavePerson={savePerson} />}
       {page === 'new' && <NewProject people={people} onCreate={createProject} onCancel={() => setPage('home')} />}
+      {page === 'drive' && <DriveIndex documents={driveDocuments} onRefresh={refreshDriveDocuments} />}
 
       {selected && (
         <Detail

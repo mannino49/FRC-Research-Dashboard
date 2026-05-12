@@ -117,7 +117,7 @@ npm run build
 Current test count:
 
 ```text
-5 files, 11 tests passing
+6 files, 13 tests passing
 ```
 
 Known npm note:
@@ -166,9 +166,9 @@ Do not commit `.env` or `.env.local`.
 ## Recommended Next Steps
 
 1. Verify production login and edit persistence for both dashboard users.
-2. Run the research-memory and manuscript-drafts Supabase migrations in production.
-3. Verify adding a linked paper memory record and manuscript draft version inside a project.
-4. Verify external paper search can save a candidate reference into project memory.
+2. Run the Research Drive index migration in production.
+3. Add Google service account env vars in Netlify and share the Research Drive folder with that service account.
+4. Verify Drive AI can sync the Research Drive and answer a latest-draft question.
 
 ## Phase 5 Preview
 
@@ -190,3 +190,4 @@ First AI workflow is a server-side project-operations assistant:
 - Generated outputs are saved to `ai_outputs` as draft artifacts.
 - Research memory now stores paper metadata and summaries in Supabase while keeping files and drafts in Google Drive.
 - Manuscript memory stores Google Drive draft/version links and writing summaries.
+- Drive AI can sync the configured Research Drive into `drive_documents` and answer questions over indexed Google Docs / Word docs.

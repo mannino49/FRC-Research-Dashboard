@@ -248,6 +248,32 @@ export async function loadDashboardData() {
   };
 }
 
+export async function loadDriveDocuments() {
+  if (!isSupabaseConfigured) return [];
+
+  const { data, error } = await supabase
+    .from('drive_documents')
+    .select('file_id,name,mime_type,web_url,folder_path,modified_at,project_guess,version_guess,text_excerpt,indexed_at')
+    .order('modified_at', { ascending: false, nullsFirst: false })
+    .limit(100);
+
+  if (isMissingRelation(error)) return [];
+  if (error) throw error;
+
+  return (data || []).map((doc) => ({
+    fileId: doc.file_id,
+    name: doc.name,
+    mimeType: doc.mime_type,
+    url: doc.web_url,
+    folderPath: doc.folder_path,
+    modifiedAt: doc.modified_at,
+    projectGuess: doc.project_guess,
+    versionGuess: doc.version_guess,
+    excerpt: doc.text_excerpt,
+    indexedAt: doc.indexed_at,
+  }));
+}
+
 export async function createProjectRecord(project) {
   if (!isSupabaseConfigured) return;
 

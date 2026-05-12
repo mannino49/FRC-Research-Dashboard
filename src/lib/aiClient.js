@@ -1,7 +1,7 @@
 import { buildProjectContext, projectContextToPrompt } from './aiContext.js';
 import { getSupabaseAccessToken } from './supabaseClient.js';
 
-export async function runProjectAiAction(project, people, actionId) {
+export async function runProjectAiAction(project, people, actionId, options = {}) {
   const context = buildProjectContext(project, people);
   const prompt = projectContextToPrompt(context);
   const accessToken = await getSupabaseAccessToken();
@@ -17,6 +17,7 @@ export async function runProjectAiAction(project, people, actionId) {
       action: actionId,
       context,
       prompt,
+      question: options.question || '',
     }),
   });
 

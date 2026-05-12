@@ -97,7 +97,7 @@ export default async (req) => {
       model: MODEL,
       input: [
         { role: 'system', content: workflowInstructions(action) },
-        { role: 'user', content: body.prompt },
+        { role: 'user', content: [body.prompt, body.question ? `User question:\n${body.question}` : ''].filter(Boolean).join('\n\n') },
       ],
       text: {
         format: {
