@@ -1,22 +1,42 @@
-# CODING AGENTS: READ THIS FIRST
+# FRC Research Dashboard
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+A lightweight research and project dashboard for tracking FRC papers, collaborations, applied projects, collaborators, next actions, and handoffs.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+The current app is a Vite/React dashboard that uses browser-side seed data by default. Netlify Functions from the original prototype remain in the repo, but the planned canonical persistence layer is Supabase.
 
-## What you should do — IMPORTANT
+## Current Shape
 
-**Read `frc-research-dashboard/project/Research Dashboard.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+- `src/` is the canonical Vite/React frontend source.
+- `src/data/seedData.js` contains the current seed people and project records.
+- `project/` contains the historical Claude Design prototype.
+- `netlify/functions/projects.mjs` and `netlify/functions/people.mjs` expose legacy JSON persistence endpoints.
+- `netlify.toml` builds the Vite app and publishes `dist`.
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+## Documentation
 
-## About the design files
+- [Project overview](docs/PROJECT_OVERVIEW.md)
+- [Development notes](docs/DEVELOPMENT.md)
+- [Data model](docs/DATA_MODEL.md)
+- [Roadmap notes](docs/ROADMAP.md)
+- [Implementation checklist](docs/IMPLEMENTATION_CHECKLIST.md)
+- [Phase 0 decisions](docs/PHASE_0_DECISIONS.md)
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+## Local Preview
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+Install dependencies:
 
-## Bundle contents
+```sh
+npm install
+```
 
-- `frc-research-dashboard/README.md` — this file
-- `frc-research-dashboard/project/` — the `FRC Research Dashboard` project files (HTML prototypes, assets, components)
+Run the app:
+
+```sh
+npm run dev
+```
+
+Then open the local Vite URL, usually `http://localhost:5173`.
+
+## Handoff Context
+
+This repo began as a handoff bundle from Claude Design. The original prototype is still preserved in `project/`, but active development now happens in `src/` and `index.html` is the Vite entry point.
