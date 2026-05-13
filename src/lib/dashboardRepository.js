@@ -174,6 +174,19 @@ function isMissingRelation(error) {
   return error?.code === '42P01' || /does not exist/i.test(error?.message || '');
 }
 
+function suggestionReviewFromRow(row) {
+  return {
+    key: row.suggestion_key,
+    type: row.suggestion_type,
+    status: row.status,
+    projectId: row.project_id || '',
+    fileId: row.file_id || '',
+    title: row.title || '',
+    reviewedBy: row.reviewed_by || '',
+    reviewedAt: row.reviewed_at,
+  };
+}
+
 function projectPayload(project) {
   return {
     id: project.id,
@@ -272,6 +285,44 @@ export async function loadDriveDocuments() {
     excerpt: doc.text_excerpt,
     indexedAt: doc.indexed_at,
   }));
+}
+
+export async function loadSuggestionReviews() {
+  if (!isSupabaseConfigured) return [];
+
+  const { data, error } = await supabase
+    .from('drive_suggestion_reviews')
+    .select('*')
+    .order('reviewed_at', { ascending: false })
+    .limit(300);
+
+  if (isMissingRelation(error)) return [];
+  if (error) throw error;
+
+  return (data || []).map(suggestionReviewFromRow);
+}
+
+export async function saveSuggestionReview(review) {
+  if (!isSupabaseConfigured) return review;
+
+  const payload = {
+    suggestion_key: review.key,
+    suggestion_type: review.type,
+    status: review.status,
+    project_id: review.projectId || null,
+    file_id: review.fileId || null,
+    title: review.title || null,
+    reviewed_by: review.reviewedBy || null,
+    reviewed_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from('drive_suggestion_reviews')
+    .upsert(payload, { onConflict: 'suggestion_key' })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return suggestionReviewFromRow(data);
 }
 
 export async function createProjectRecord(project) {

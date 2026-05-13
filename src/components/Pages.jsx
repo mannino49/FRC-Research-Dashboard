@@ -1,5 +1,11 @@
 import React from 'react';
-import { askResearchDrive, syncResearchDrive } from '../lib/driveClient.js';
+import { askResearchDrive, suggestFromResearchDrive, syncResearchDrive } from '../lib/driveClient.js';
+import {
+  aiProjectSuggestionToProject,
+  aiUpdateSuggestionToPatch,
+  driveProjectSuggestion,
+  projectSuggestionsFromDrive,
+} from '../lib/driveIntelligence.js';
 import { TYPES, classNames, personById, typeMark, typeWord } from '../utils.js';
 
 export function People({ people, projects, onOpenProject, onSavePerson }) {
@@ -311,12 +317,19 @@ export function NewProject({ people, onCreate, onCancel }) {
   );
 }
 
-export function DriveIndex({ documents, onRefresh }) {
+export function DriveIndex({ documents, projects = [], onRefresh, onCreateProject, onPatchProject, suggestionReviews = [], onReviewSuggestion }) {
   const [syncState, setSyncState] = React.useState('idle');
   const [message, setMessage] = React.useState('');
   const [question, setQuestion] = React.useState('');
   const [answerState, setAnswerState] = React.useState('idle');
   const [answer, setAnswer] = React.useState(null);
+  const [suggestState, setSuggestState] = React.useState('idle');
+  const [aiSuggestions, setAiSuggestions] = React.useState(null);
+  const reviewedKeys = React.useMemo(() => new Set(suggestionReviews.map((review) => review.key)), [suggestionReviews]);
+  const projectSuggestions = React.useMemo(
+    () => projectSuggestionsFromDrive(documents, projects).filter(({ doc }) => !reviewedKeys.has(`drive-project:${doc.fileId}`)),
+    [documents, projects, reviewedKeys],
+  );
 
   async function sync() {
     setSyncState('working');
@@ -348,6 +361,75 @@ export function DriveIndex({ documents, onRefresh }) {
     }
   }
 
+  function approveProjectSuggestion(doc) {
+    if (!onCreateProject) return;
+    onCreateProject(driveProjectSuggestion(doc));
+    onReviewSuggestion?.({
+      key: `drive-project:${doc.fileId}`,
+      type: 'drive_project',
+      status: 'approved',
+      fileId: doc.fileId,
+      title: doc.projectGuess || doc.name,
+      reviewedBy: 'MM',
+    });
+    setMessage(`Created project suggestion for ${doc.projectGuess || doc.name}.`);
+    setSyncState('ready');
+  }
+
+  function dismissSuggestion(review) {
+    onReviewSuggestion?.({
+      status: 'dismissed',
+      reviewedBy: 'MM',
+      ...review,
+    });
+  }
+
+  async function generateSuggestions() {
+    setSuggestState('working');
+    try {
+      const result = await suggestFromResearchDrive(projects);
+      setAiSuggestions(result);
+      setSuggestState('ready');
+      setMessage(`Generated ${(result.projectSuggestions?.length || 0) + (result.updateSuggestions?.length || 0)} AI suggestions.`);
+      setSyncState('ready');
+    } catch (error) {
+      console.error(error);
+      setSuggestState('error');
+      setMessage(error.message || 'AI suggestions failed.');
+      setSyncState('error');
+    }
+  }
+
+  function approveAiProjectSuggestion(suggestion, index) {
+    if (!onCreateProject) return;
+    onCreateProject(aiProjectSuggestionToProject(suggestion, documents));
+    onReviewSuggestion?.({
+      key: `ai-project:${suggestion.title}:${suggestion.sourceFileIds?.join(',') || index}`,
+      type: 'ai_project',
+      status: 'approved',
+      fileId: suggestion.sourceFileIds?.[0] || '',
+      title: suggestion.title,
+      reviewedBy: 'MM',
+    });
+  }
+
+  function approveAiUpdateSuggestion(suggestion, index) {
+    const project = projects.find((item) => item.id === suggestion.projectId);
+    if (!project || !onPatchProject) return;
+    const patch = aiUpdateSuggestionToPatch(project, suggestion);
+    if (!Object.keys(patch).length) return;
+    onPatchProject(project.id, patch);
+    onReviewSuggestion?.({
+      key: `ai-update:${suggestion.projectId}:${suggestion.sourceFileIds?.join(',') || index}:${suggestion.summary}`,
+      type: 'ai_update',
+      status: 'approved',
+      projectId: project.id,
+      fileId: suggestion.sourceFileIds?.[0] || '',
+      title: suggestion.summary || project.title,
+      reviewedBy: 'MM',
+    });
+  }
+
   return (
     <section className="drive-page">
       <div className="section-head" style={{ paddingTop: 28 }}>
@@ -366,7 +448,7 @@ export function DriveIndex({ documents, onRefresh }) {
         </button>
       </div>
 
-      {message && <div className={classNames('ai-message', syncState === 'error' && 'error')}>{message}</div>}
+      {message && <div className={classNames('ai-message', syncState === 'error' && 'error')} role="status">{message}</div>}
 
       <div className="drive-ask">
         <textarea
@@ -379,7 +461,17 @@ export function DriveIndex({ documents, onRefresh }) {
         </button>
       </div>
 
-      {answer?.error && <div className="ai-message error">{answer.error}</div>}
+      <div className="drive-suggest-callout">
+        <div>
+          <div className="lbl">Project intelligence</div>
+          <p>Generate review-only proposals from indexed Drive text and current project records.</p>
+        </div>
+        <button onClick={generateSuggestions} disabled={suggestState === 'working' || !documents.length}>
+          {suggestState === 'working' ? 'Generating...' : 'Generate AI suggestions'}
+        </button>
+      </div>
+
+      {answer?.error && <div className="ai-message error" role="alert">{answer.error}</div>}
       {answer?.response && (
         <div className="drive-answer">
           {answer.structured ? (
@@ -420,7 +512,118 @@ export function DriveIndex({ documents, onRefresh }) {
         </div>
       )}
 
+      {projectSuggestions.length ? (
+        <div className="drive-suggestions">
+          <div className="memory-head">
+            <div>
+              <div className="lbl">Project suggestions</div>
+              <p>Drive-derived candidates stay out of the project list until you approve one.</p>
+            </div>
+            <span>{projectSuggestions.length} candidates</span>
+          </div>
+          <div className="drive-suggestion-list">
+            {projectSuggestions.map(({ doc, title }) => (
+              <article key={doc.fileId} className="drive-suggestion-card">
+                <div>
+                  <h3>{title}</h3>
+                  <p>{[doc.name, doc.versionGuess, doc.modifiedAt?.slice(0, 10)].filter(Boolean).join(' · ')}</p>
+                  {doc.excerpt && <p className="abstract-preview">{doc.excerpt.slice(0, 240)}{doc.excerpt.length > 240 ? '...' : ''}</p>}
+                </div>
+                <div className="drive-suggestion-actions">
+                  <a href={doc.url} target="_blank" rel="noreferrer">Open</a>
+                  <button onClick={() => dismissSuggestion({
+                    key: `drive-project:${doc.fileId}`,
+                    type: 'drive_project',
+                    fileId: doc.fileId,
+                    title,
+                  })}>Dismiss</button>
+                  <button onClick={() => approveProjectSuggestion(doc)}>Approve project</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {(aiSuggestions?.projectSuggestions?.length || aiSuggestions?.updateSuggestions?.length) ? (
+        <div className="drive-suggestions ai-drive-suggestions">
+          <div className="memory-head">
+            <div>
+              <div className="lbl">AI review queue</div>
+              <p>These suggestions are generated from indexed Drive text and are saved only when approved.</p>
+            </div>
+            <span>{aiSuggestions.model || 'AI'} </span>
+          </div>
+
+          {aiSuggestions.projectSuggestions?.length ? (
+            <div className="drive-suggestion-list">
+              {aiSuggestions.projectSuggestions.map((suggestion, index) => {
+                const reviewKey = `ai-project:${suggestion.title}:${suggestion.sourceFileIds?.join(',') || index}`;
+                if (reviewedKeys.has(reviewKey)) return null;
+                return (
+                  <article key={reviewKey} className="drive-suggestion-card">
+                    <div>
+                      <h3>{suggestion.title}</h3>
+                      <p>{[suggestion.type, suggestion.status, suggestion.confidence].filter(Boolean).join(' · ')}</p>
+                      <p className="abstract-preview">{suggestion.rationale}</p>
+                      {suggestion.nextAction && <p><strong>Next:</strong> {suggestion.nextAction}</p>}
+                      {suggestion.missingContext?.length ? <p className="abstract-preview">Missing: {suggestion.missingContext.join(' · ')}</p> : null}
+                    </div>
+                    <div className="drive-suggestion-actions">
+                      <button onClick={() => dismissSuggestion({
+                        key: reviewKey,
+                        type: 'ai_project',
+                        fileId: suggestion.sourceFileIds?.[0] || '',
+                        title: suggestion.title,
+                      })}>Dismiss</button>
+                      <button onClick={() => approveAiProjectSuggestion(suggestion, index)}>Approve project</button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {aiSuggestions.updateSuggestions?.length ? (
+            <div className="drive-suggestion-list">
+              {aiSuggestions.updateSuggestions.map((suggestion, index) => {
+                const reviewKey = `ai-update:${suggestion.projectId}:${suggestion.sourceFileIds?.join(',') || index}:${suggestion.summary}`;
+                const project = projects.find((item) => item.id === suggestion.projectId);
+                if (reviewedKeys.has(reviewKey) || !project) return null;
+                return (
+                  <article key={reviewKey} className="drive-suggestion-card">
+                    <div>
+                      <h3>{project.title}</h3>
+                      <p>{[suggestion.summary, suggestion.confidence].filter(Boolean).join(' · ')}</p>
+                      <p className="abstract-preview">{suggestion.rationale}</p>
+                      {suggestion.patch?.note && <p><strong>Next:</strong> {suggestion.patch.note}</p>}
+                      {suggestion.missingContext?.length ? <p className="abstract-preview">Missing: {suggestion.missingContext.join(' · ')}</p> : null}
+                    </div>
+                    <div className="drive-suggestion-actions">
+                      <button onClick={() => dismissSuggestion({
+                        key: reviewKey,
+                        type: 'ai_update',
+                        projectId: project.id,
+                        fileId: suggestion.sourceFileIds?.[0] || '',
+                        title: suggestion.summary || project.title,
+                      })}>Dismiss</button>
+                      <button onClick={() => approveAiUpdateSuggestion(suggestion, index)}>Approve update</button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="drive-docs">
+        {!documents.length && (
+          <div className="empty-state">
+            <div className="sc">No indexed Drive files</div>
+            <p>Sync Research Drive to populate the index before asking document-specific questions.</p>
+          </div>
+        )}
         {documents.map((doc) => (
           <article key={doc.fileId} className="drive-doc">
             <div>

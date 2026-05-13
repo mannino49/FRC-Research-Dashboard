@@ -84,6 +84,7 @@ describe('AI project context', () => {
 
   it('defines operational prompt actions for current dashboard data', () => {
     expect(AI_ACTIONS.map((action) => action.id)).toEqual([
+      'handoff_brief',
       'summarize_status',
       'recommend_next_action',
       'identify_stalled_waiting',
@@ -95,6 +96,7 @@ describe('AI project context', () => {
       'ask_manuscript_question',
       'suggest_reference_papers',
     ]);
+    expect(getAiAction('handoff_brief')?.instruction).toContain('latest synced Drive document');
     expect(getAiAction('draft_followup_email')?.instruction).toContain('subject line');
   });
 });

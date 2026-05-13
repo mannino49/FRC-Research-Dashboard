@@ -1,5 +1,14 @@
 export const AI_ACTIONS = [
   {
+    id: 'handoff_brief',
+    title: 'Where did we leave off?',
+    verb: 'Reading...',
+    outputType: 'handoff_brief',
+    description: 'Create a handoff brief with owner, latest document, and next writing move.',
+    instruction:
+      'Create a collaboration handoff brief for Michael and Stephen. Identify whose turn it is, the latest synced Drive document or draft if visible, where the project appears to be, the next writing or coordination step, and what each person needs to know before resuming. If the latest document is uncertain, say why.',
+  },
+  {
     id: 'summarize_status',
     title: 'Summarize project status',
     verb: 'Summarizing...',

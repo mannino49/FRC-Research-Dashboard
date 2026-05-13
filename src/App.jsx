@@ -10,14 +10,12 @@ import {
   appendHistoryRecord,
   createPersonRecord,
   createProjectRecord,
-  createManuscriptDraftRecord,
-  createResearchPaperForProject,
-  deleteManuscriptDraftRecord,
   deleteProjectRecord,
   loadDashboardData,
   loadDriveDocuments,
+  loadSuggestionReviews,
   replaceProjectLinksRecord,
-  unlinkResearchPaperFromProject,
+  saveSuggestionReview,
   updatePersonRecord,
   updateProjectRecord,
 } from './lib/dashboardRepository.js';
@@ -46,6 +44,7 @@ export default function App() {
   const [typeFilter, setTypeFilter] = React.useState('all');
   const [turnFilter, setTurnFilter] = React.useState('all');
   const [driveDocuments, setDriveDocuments] = React.useState([]);
+  const [suggestionReviews, setSuggestionReviews] = React.useState([]);
 
   React.useEffect(() => {
     let alive = true;
@@ -73,6 +72,9 @@ export default function App() {
 
   React.useEffect(() => {
     refreshDriveDocuments().catch((error) => {
+      console.error(error);
+    });
+    refreshSuggestionReviews().catch((error) => {
       console.error(error);
     });
   }, []);
@@ -212,96 +214,6 @@ export default function App() {
     }
   }
 
-  async function addProjectPaper(projectId, paper) {
-    const tempPaper = {
-      ...paper,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const previous = projects;
-    setProjects((ps) => ps.map((p) => (p.id === projectId ? { ...p, papers: [tempPaper, ...(p.papers || [])] } : p)));
-    setSaveState('saving');
-
-    try {
-      const savedPaper = await createResearchPaperForProject(projectId, paper);
-      setProjects((ps) => ps.map((p) => (
-        p.id === projectId
-          ? { ...p, papers: (p.papers || []).map((item) => (item.id === tempPaper.id ? savedPaper : item)) }
-          : p
-      )));
-      setSaveState('saved');
-      flashToast('Research memory added');
-    } catch (error) {
-      console.error(error);
-      setProjects(previous);
-      setSaveState('error');
-      flashToast('Research memory save failed');
-    }
-  }
-
-  async function removeProjectPaper(projectId, paperId) {
-    const previous = projects;
-    setProjects((ps) => ps.map((p) => (p.id === projectId ? { ...p, papers: (p.papers || []).filter((paper) => paper.id !== paperId) } : p)));
-    setSaveState('saving');
-
-    try {
-      await unlinkResearchPaperFromProject(projectId, paperId);
-      setSaveState('saved');
-      flashToast('Research memory unlinked');
-    } catch (error) {
-      console.error(error);
-      setProjects(previous);
-      setSaveState('error');
-      flashToast('Research memory unlink failed');
-    }
-  }
-
-  async function addProjectDraft(projectId, draft) {
-    const tempDraft = {
-      ...draft,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const previous = projects;
-    setProjects((ps) => ps.map((p) => (p.id === projectId ? { ...p, drafts: [tempDraft, ...(p.drafts || [])] } : p)));
-    setSaveState('saving');
-
-    try {
-      const savedDraft = await createManuscriptDraftRecord(projectId, draft);
-      setProjects((ps) => ps.map((p) => (
-        p.id === projectId
-          ? { ...p, drafts: (p.drafts || []).map((item) => (item.id === tempDraft.id ? savedDraft : item)) }
-          : p
-      )));
-      setSaveState('saved');
-      flashToast('Draft version added');
-    } catch (error) {
-      console.error(error);
-      setProjects(previous);
-      setSaveState('error');
-      flashToast('Draft save failed');
-    }
-  }
-
-  async function removeProjectDraft(projectId, draftId) {
-    const previous = projects;
-    setProjects((ps) => ps.map((p) => (p.id === projectId ? { ...p, drafts: (p.drafts || []).filter((draft) => draft.id !== draftId) } : p)));
-    setSaveState('saving');
-
-    try {
-      await deleteManuscriptDraftRecord(draftId);
-      setSaveState('saved');
-      flashToast('Draft version removed');
-    } catch (error) {
-      console.error(error);
-      setProjects(previous);
-      setSaveState('error');
-      flashToast('Draft delete failed');
-    }
-  }
-
   async function savePerson(id, person, mode) {
     const previous = people;
     setPeople((current) => ({
@@ -326,6 +238,33 @@ export default function App() {
   async function refreshDriveDocuments() {
     const docs = await loadDriveDocuments();
     setDriveDocuments(docs);
+  }
+
+  async function refreshSuggestionReviews() {
+    const reviews = await loadSuggestionReviews();
+    setSuggestionReviews(reviews);
+  }
+
+  async function reviewSuggestion(review) {
+    const tempReview = {
+      reviewedAt: new Date().toISOString(),
+      ...review,
+    };
+    setSuggestionReviews((reviews) => [
+      tempReview,
+      ...reviews.filter((item) => item.key !== tempReview.key),
+    ]);
+
+    try {
+      const saved = await saveSuggestionReview(tempReview);
+      setSuggestionReviews((reviews) => [
+        saved,
+        ...reviews.filter((item) => item.key !== saved.key),
+      ]);
+    } catch (error) {
+      console.error(error);
+      flashToast('Suggestion review save failed');
+    }
   }
 
   const selectedProject = projects.find((p) => p.id === selectedId);
@@ -403,10 +342,10 @@ export default function App() {
       </header>
 
       <nav className="nav">
-        <a className={page === 'home' ? 'active' : ''} onClick={() => { setPage('home'); setSelectedId(null); }}>Projects</a>
-        <a className={page === 'people' ? 'active' : ''} onClick={() => { setPage('people'); setSelectedId(null); }}>Collaborators</a>
-        <a className={page === 'new' ? 'active' : ''} onClick={() => { setPage('new'); setSelectedId(null); }}>New project</a>
-        <a className={page === 'drive' ? 'active' : ''} onClick={() => { setPage('drive'); setSelectedId(null); }}>Drive AI</a>
+        <button className={page === 'home' ? 'active' : ''} onClick={() => { setPage('home'); setSelectedId(null); }}>Projects</button>
+        <button className={page === 'people' ? 'active' : ''} onClick={() => { setPage('people'); setSelectedId(null); }}>Collaborators</button>
+        <button className={page === 'new' ? 'active' : ''} onClick={() => { setPage('new'); setSelectedId(null); }}>New project</button>
+        <button className={page === 'drive' ? 'active' : ''} onClick={() => { setPage('drive'); setSelectedId(null); }}>Drive AI</button>
         <a className="external-nav" href={RESEARCH_DRIVE_URL} target="_blank" rel="noopener noreferrer">
           Research Drive
           <ExternalLinkIcon />
@@ -491,7 +430,17 @@ export default function App() {
 
       {page === 'people' && <People people={people} projects={projects} onOpenProject={setSelectedId} onSavePerson={savePerson} />}
       {page === 'new' && <NewProject people={people} onCreate={createProject} onCancel={() => setPage('home')} />}
-      {page === 'drive' && <DriveIndex documents={driveDocuments} onRefresh={refreshDriveDocuments} />}
+      {page === 'drive' && (
+        <DriveIndex
+          documents={driveDocuments}
+          projects={projects}
+          onRefresh={refreshDriveDocuments}
+          onCreateProject={createProject}
+          onPatchProject={patchProject}
+          suggestionReviews={suggestionReviews}
+          onReviewSuggestion={reviewSuggestion}
+        />
+      )}
 
       {selected && (
         <Detail
@@ -500,10 +449,6 @@ export default function App() {
           onClose={() => setSelectedId(null)}
           onPatch={patchProject}
           onHistory={appendHistory}
-          onAddPaper={addProjectPaper}
-          onRemovePaper={removeProjectPaper}
-          onAddDraft={addProjectDraft}
-          onRemoveDraft={removeProjectDraft}
           onDelete={deleteProject}
         />
       )}
@@ -556,7 +501,7 @@ export default function App() {
         </div>
       </div>
 
-      {toast && <div className="toast">{toast}</div>}
+      {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );
 }

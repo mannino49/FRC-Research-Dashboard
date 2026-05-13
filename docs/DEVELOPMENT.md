@@ -47,6 +47,22 @@ http://localhost:5173
 
 When Supabase env vars are present, the app requires sign-in and reads/writes Supabase. Without those env vars, it falls back to `src/data/seedData.js`.
 
+Local connected development uses `.env.local`:
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1
+OPENAI_SCOUT_MODEL=
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_PRIVATE_KEY=
+GOOGLE_DRIVE_ROOT_FOLDER_ID=
+```
+
+Restart `npm run dev` after changing env vars.
+
 ## Scripts
 
 ```sh
@@ -115,3 +131,23 @@ Project and collaborator mutations optimistically update local React state and p
 ```
 
 Production uses Supabase environment variables in Netlify. The old Netlify Blob functions have been retired.
+
+Required production variables:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `OPENAI_API_KEY`
+
+Required for Drive sync:
+
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
+- `GOOGLE_DRIVE_ROOT_FOLDER_ID`
+
+Optional or workflow-specific:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `OPENAI_MODEL`
+- `OPENAI_SCOUT_MODEL`
+
+Run Supabase migrations before deploying features that add tables or allowed AI output types.

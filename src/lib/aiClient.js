@@ -29,3 +29,27 @@ export async function runProjectAiAction(project, people, actionId, options = {}
     prompt,
   };
 }
+
+export async function scoutProjectCollaborators(project, people) {
+  const context = buildProjectContext(project, people);
+  const prompt = projectContextToPrompt(context);
+  const accessToken = await getSupabaseAccessToken();
+  if (!accessToken) throw new Error('Sign in before scouting collaborators.');
+
+  const response = await fetch('/api/collaborator-scout', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ context, prompt }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Collaborator scout failed.');
+
+  return {
+    ...data,
+    prompt,
+  };
+}

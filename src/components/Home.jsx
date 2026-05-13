@@ -116,7 +116,19 @@ export default function Home({ people, projects, onOpen, grouping, onPatch, onHi
               const mine = p.turn === 'MM';
               const turnPerson = personById(people, p.turn);
               return (
-                <div key={p.id} className={classNames('row', mine && 'mine')} onClick={() => onOpen(p.id)}>
+                <div
+                  key={p.id}
+                  className={classNames('row', mine && 'mine')}
+                  onClick={() => onOpen(p.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onOpen(p.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                   <span className="idx">{runningIdx}</span>
                   <span
                     className="turn"

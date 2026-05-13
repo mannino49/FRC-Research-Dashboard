@@ -34,7 +34,7 @@ export default function AuthGate({ children }) {
   if (loading) {
     return (
       <div className="app">
-        <div className="status-panel">Checking session…</div>
+        <div className="status-panel" role="status">Checking session...</div>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default function AuthGate({ children }) {
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
           </label>
           <button type="submit">Enter dashboard</button>
-          {message && <p className="auth-error">{message}</p>}
+          {message && <p className="auth-error" role="alert">{message}</p>}
         </form>
       </div>
     );

@@ -39,6 +39,49 @@ npm run dev
 
 Then open the local Vite URL, usually `http://localhost:5173`.
 
+Create `.env.local` for connected development:
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1
+GOOGLE_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_PRIVATE_KEY=
+GOOGLE_DRIVE_ROOT_FOLDER_ID=
+```
+
+Only `VITE_` values are browser-visible. Keep Supabase service-role, OpenAI, and Google service account keys server-side.
+
+## Deployment
+
+The Netlify build command is:
+
+```sh
+npm run build
+```
+
+Publish directory:
+
+```text
+dist
+```
+
+Production environment variables should include:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- `OPENAI_SCOUT_MODEL` optional
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
+- `GOOGLE_DRIVE_ROOT_FOLDER_ID`
+
+Apply Supabase migrations in `supabase/migrations/` before deploying code that depends on new tables or enum/check values.
+
 ## Handoff Context
 
 This repo began as a handoff bundle from Claude Design. The original prototype is still preserved in `project/`, but active development now happens in `src/` and `index.html` is the Vite entry point.

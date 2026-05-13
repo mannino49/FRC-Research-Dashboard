@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-05-12
+Last updated: 2026-05-13
 
 ## Current State
 
@@ -117,7 +117,7 @@ npm run build
 Current test count:
 
 ```text
-6 files, 14 tests passing
+7 files, 23 tests passing
 ```
 
 Known npm note:
@@ -166,13 +166,13 @@ Do not commit `.env` or `.env.local`.
 ## Recommended Next Steps
 
 1. Verify production login and edit persistence for both dashboard users.
-2. Simplify the project detail panel by removing or hiding the manual `Manuscript versions` and `Research memory` sections.
-3. Replace those manual sections with a compact `Synced Drive context` section showing matched files, latest draft guess, modified date, and open-in-Drive links.
-4. Add Drive-derived project intelligence:
+2. Verify the new `Synced Drive context` section against production Drive sync data.
+3. Add richer Drive-derived project intelligence:
    - detect likely projects from newly synced Drive files
    - suggest project records from manuscript metadata/content
    - let the user approve creation or update of project fields
-5. Add a handoff-safe review flow before AI-created projects are persisted.
+4. Add contact/save flow for collaborator scout candidates.
+5. Add a dedicated writing handoff panel combining latest draft, handoff brief, and next paragraph.
 
 ## Phase 5 Preview
 
@@ -196,7 +196,49 @@ AI is now centered on the Research Drive index plus project operations:
 - Manuscript memory stores Google Drive draft/version links and writing summaries.
 - Drive AI can sync the configured Research Drive into `drive_documents` and answer questions over indexed Google Docs / Word docs.
 - Project-panel AI now receives relevant synced Drive documents when filenames/project guesses match the project.
-- The manual `Manuscript versions` and `Research memory` sections are now legacy scaffolding; they should be removed or collapsed in favor of Drive-derived context.
+- The manual `Manuscript versions` and `Research memory` sections are now hidden from project detail in favor of Drive-derived context.
+
+## Phase 6B Current State
+
+Drive-derived project intelligence has started:
+
+- Project detail shows a compact `Synced Drive context` section with matched files, latest draft guess, modified/indexed dates, version guess, excerpts, and Drive links.
+- Project detail proposes small Drive-derived updates, such as adding the latest Drive link, setting a review next action, or aligning status from version metadata.
+- The Drive AI page surfaces inferred project candidates from indexed Drive files.
+- `/api/drive-suggest` generates review-only AI project and update proposals from indexed Drive text and current project records.
+- Drive-derived project records are not saved until the user approves a suggestion.
+- Drive suggestion approvals/dismissals are stored in `drive_suggestion_reviews`.
+- Tests cover latest-document selection, duplicate suggestion suppression, approved project creation formatting, non-mutating update suggestions, and Drive suggestion endpoint guards.
+
+Still open for Phase 6B:
+
+- Expand the server-side AI suggestion endpoint to extract authors/collaborators and references/citations from document content.
+
+## Phase 6C Current State
+
+Collaboration automation has started:
+
+- Added a `Where did we leave off?` project action that creates a handoff brief with owner, latest synced document, project state, and next move.
+- Added `/api/collaborator-scout`, which uses OpenAI Responses web search to find public collaborator candidates with source URLs.
+- Project detail now includes a `Scout collaborators` action and saves scout results to `ai_outputs`.
+
+Still open for Phase 6C:
+
+- Add a contact/save flow for collaborator candidates.
+- Add a dedicated writing handoff panel that puts latest draft, handoff brief, and next paragraph in one place.
+- Add live API/e2e coverage for collaborator scout response formatting when credentials are available.
+
+## Phase 7 Current State
+
+Product polish pass is complete:
+
+- Added an FRC favicon and wired it into `index.html`.
+- Improved Drive empty state, loading/session announcements, auth error alerts, and toast status announcements.
+- Converted primary navigation controls from link-like click targets to real buttons.
+- Added keyboard support for opening project rows from the project list.
+- Added visible focus styles for keyboard navigation.
+- Added responsive rules for mobile/tablet layouts across masthead, nav, filters, project rows, slide-over detail, Drive cards, and collaborator forms.
+- Expanded README and development docs with local setup and deployment environment variables.
 
 ## Current Product Direction
 

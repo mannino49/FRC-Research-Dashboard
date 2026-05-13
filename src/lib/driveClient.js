@@ -34,3 +34,7 @@ export function syncResearchDrive(folderId) {
 export function askResearchDrive(question) {
   return authedPost('/api/drive-ask', { question });
 }
+
+export function suggestFromResearchDrive(projects) {
+  return authedPost('/api/drive-suggest', { projects });
+}

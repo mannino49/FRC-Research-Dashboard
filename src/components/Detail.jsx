@@ -1,43 +1,11 @@
 import React from 'react';
 import { AI_ACTIONS, getAiAction } from '../lib/aiActions.js';
-import { runProjectAiAction } from '../lib/aiClient.js';
+import { runProjectAiAction, scoutProjectCollaborators } from '../lib/aiClient.js';
 import { createAiOutputRecord } from '../lib/dashboardRepository.js';
-import { searchReferencePapers } from '../lib/paperSearchClient.js';
+import { latestDriveDocument, projectUpdateSuggestions } from '../lib/driveIntelligence.js';
 import { STATUSES, classNames, fmtDate, isMine, personById, typeMark, typeWord } from '../utils.js';
 
-function emptyPaperDraft() {
-  return {
-    title: '',
-    authors: '',
-    year: '',
-    doi: '',
-    sourceUrl: '',
-    driveUrl: '',
-    status: 'reference',
-    version: '',
-    abstract: '',
-    keyFindings: '',
-    methods: '',
-    quotesNotes: '',
-    relevance: '',
-    relevanceNote: '',
-  };
-}
-
-function emptyManuscriptDraft() {
-  return {
-    title: '',
-    driveUrl: '',
-    version: '',
-    status: 'draft',
-    section: '',
-    summary: '',
-    openTasks: '',
-    lastEdited: '',
-  };
-}
-
-export default function Detail({ people, project, onClose, onPatch, onHistory, onAddPaper, onRemovePaper, onAddDraft, onRemoveDraft, onDelete }) {
+export default function Detail({ people, project, onClose, onPatch, onHistory, onDelete }) {
   const [editingStatus, setEditingStatus] = React.useState(false);
   const [editingTurn, setEditingTurn] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
@@ -50,12 +18,6 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
   const [aiMessage, setAiMessage] = React.useState('');
   const [aiDraft, setAiDraft] = React.useState(null);
   const [activeAiAction, setActiveAiAction] = React.useState(AI_ACTIONS[0].id);
-  const [paperDraft, setPaperDraft] = React.useState(() => emptyPaperDraft());
-  const [manuscriptDraft, setManuscriptDraft] = React.useState(() => emptyManuscriptDraft());
-  const [referenceQuery, setReferenceQuery] = React.useState('');
-  const [referenceResults, setReferenceResults] = React.useState([]);
-  const [referenceState, setReferenceState] = React.useState('idle');
-  const [referenceMessage, setReferenceMessage] = React.useState('');
 
   React.useEffect(() => {
     setNotesDraft(project?.notes || '');
@@ -66,12 +28,6 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
     setAiMessage('');
     setAiDraft(null);
     setActiveAiAction(AI_ACTIONS[0].id);
-    setPaperDraft(emptyPaperDraft());
-    setManuscriptDraft(emptyManuscriptDraft());
-    setReferenceQuery('');
-    setReferenceResults([]);
-    setReferenceState('idle');
-    setReferenceMessage('');
   }, [project?.id, project?.notes]);
 
   React.useEffect(() => {
@@ -85,6 +41,8 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
   if (!project) return null;
   const p = project;
   const allTurns = ['MM', 'SK', ...p.coauthors];
+  const latestDriveDoc = latestDriveDocument(p.driveDocuments);
+  const driveSuggestions = projectUpdateSuggestions(p, p.driveDocuments);
 
   function postNote() {
     if (!noteDraft.trim()) return;
@@ -122,70 +80,6 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
     });
   }
 
-  function updatePaperDraft(field, value) {
-    setPaperDraft((draft) => ({ ...draft, [field]: value }));
-  }
-
-  function addPaper() {
-    if (!paperDraft.title.trim()) return;
-    onAddPaper(p.id, {
-      ...paperDraft,
-      title: paperDraft.title.trim(),
-      authors: paperDraft.authors.trim(),
-    });
-    setPaperDraft(emptyPaperDraft());
-  }
-
-  async function searchReferences() {
-    if (referenceQuery.trim().length < 3) return;
-    setReferenceState('searching');
-    setReferenceMessage('');
-    try {
-      const data = await searchReferencePapers(referenceQuery.trim());
-      setReferenceResults(data.results || []);
-      setReferenceState('ready');
-      setReferenceMessage(`${data.results?.length || 0} candidates from ${data.source}.`);
-    } catch (error) {
-      console.error(error);
-      setReferenceState('error');
-      setReferenceMessage(error.message || 'Reference search failed.');
-    }
-  }
-
-  function saveReferenceCandidate(result) {
-    onAddPaper(p.id, {
-      title: result.title,
-      authors: result.authors,
-      year: result.year,
-      doi: result.doi?.replace(/^https?:\/\/doi.org\//, ''),
-      sourceUrl: result.sourceUrl,
-      driveUrl: '',
-      status: 'to-read',
-      version: '',
-      abstract: result.abstract,
-      keyFindings: result.citedByCount ? `External search metadata: ${result.citedByCount} citations in OpenAlex.` : '',
-      methods: '',
-      quotesNotes: '',
-      relevance: result.relevance,
-      relevanceNote: `Saved from external search: ${referenceQuery.trim()}`,
-    });
-    setReferenceMessage('Candidate saved to research memory.');
-  }
-
-  function updateManuscriptDraft(field, value) {
-    setManuscriptDraft((draft) => ({ ...draft, [field]: value }));
-  }
-
-  function addManuscriptDraft() {
-    if (!manuscriptDraft.title.trim() || !manuscriptDraft.driveUrl.trim()) return;
-    onAddDraft(p.id, {
-      ...manuscriptDraft,
-      title: manuscriptDraft.title.trim(),
-      driveUrl: manuscriptDraft.driveUrl.trim(),
-    });
-    setManuscriptDraft(emptyManuscriptDraft());
-  }
-
   function deleteProject() {
     if (!confirmDelete) {
       setConfirmDelete(true);
@@ -217,6 +111,28 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
     }
   }
 
+  async function runCollaboratorScout() {
+    setActiveAiAction('collaborator_scout');
+    setAiState('working');
+    setAiMessage('');
+    try {
+      const result = await scoutProjectCollaborators(p, people);
+      setAiDraft(result);
+      await createAiOutputRecord(p.id, {
+        outputType: result.outputType,
+        prompt: result.prompt,
+        response: result.response,
+        model: result.model,
+      });
+      setAiState('ready');
+      setAiMessage('Collaborator scout saved.');
+    } catch (error) {
+      console.error(error);
+      setAiState('error');
+      setAiMessage(error.message || 'Collaborator scout failed.');
+    }
+  }
+
   async function copyAiDraft() {
     if (!aiDraft?.response) return;
     await navigator.clipboard.writeText(aiDraft.response);
@@ -235,6 +151,10 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
     setAiMessage('Added to project notes.');
   }
 
+  function applyDriveSuggestion(suggestion) {
+    onPatch(p.id, suggestion.patch);
+  }
+
   return (
     <>
       <div className="scrim" onClick={onClose} />
@@ -242,7 +162,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
         <div className="inner">
           <div className="topbar">
             <span className="label">{typeMark(p.type)} · {typeWord(p.type)} · {p.id.toUpperCase()}</span>
-            <span className="close mono" onClick={onClose}>esc ✕</span>
+            <button className="close mono" onClick={onClose} aria-label="Close project detail">esc x</button>
           </div>
 
           <h2>{p.title}</h2>
@@ -341,7 +261,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
                 <>
                   {personById(people, p.waitingOn)?.name}{' '}
                   <span style={{ color: 'var(--ink-3)' }} className="mono">
-                    <button style={{ textDecoration: 'underline', color: 'inherit' }} onClick={() => onPatch(p.id, { waitingOn: null })}>clear</button>
+                    <button className="inline-action" onClick={() => onPatch(p.id, { waitingOn: null })}>clear</button>
                   </span>
                 </>
               ) : (
@@ -396,230 +316,55 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
             </div>
           </div>
 
-          <div className="manuscript-memory">
+          <div className="synced-drive-context">
             <div className="memory-head">
               <div>
-                <div className="lbl">Manuscript versions</div>
-                <p>Google Drive drafts and version notes for collaborative writing. These summaries are included in AI context.</p>
+                <div className="lbl">Synced Drive context</div>
+                <p>Matched files from Research Drive. Project updates stay as suggestions until you approve them.</p>
               </div>
-              <span>{p.drafts?.length || 0} linked</span>
+              <span>{p.driveDocuments?.length || 0} matched</span>
             </div>
 
-            {p.drafts?.length ? (
-              <div className="paper-list">
-                {p.drafts.map((draft) => (
-                  <article className="paper-card manuscript-card" key={draft.id}>
-                    <div>
-                      <h3>{draft.title}</h3>
-                      <p>{[draft.version, draft.status, draft.section, draft.lastEdited].filter(Boolean).join(' · ') || 'No version metadata yet'}</p>
-                    </div>
-                    <div className="paper-links">
-                      <a href={draft.driveUrl} target="_blank" rel="noreferrer">Drive draft</a>
-                      <button onClick={() => onRemoveDraft(p.id, draft.id)}>Remove</button>
-                    </div>
-                    {(draft.summary || draft.openTasks) && (
-                      <dl>
-                        {draft.summary && <><dt>Summary</dt><dd>{draft.summary}</dd></>}
-                        {draft.openTasks && <><dt>Open tasks</dt><dd>{draft.openTasks}</dd></>}
-                      </dl>
-                    )}
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-memory">No manuscript drafts linked yet.</div>
-            )}
-
-            <div className="paper-form">
-              <label>
-                <span>Draft title</span>
-                <input value={manuscriptDraft.title} onChange={(e) => updateManuscriptDraft('title', e.target.value)} placeholder="Main manuscript, intro draft, revisions..." />
-              </label>
-              <label>
-                <span>Version</span>
-                <input value={manuscriptDraft.version} onChange={(e) => updateManuscriptDraft('version', e.target.value)} placeholder="v1, SK comments, submitted proof" />
-              </label>
-              <label>
-                <span>Status</span>
-                <select value={manuscriptDraft.status} onChange={(e) => updateManuscriptDraft('status', e.target.value)}>
-                  <option value="draft">Draft</option>
-                  <option value="needs-review">Needs review</option>
-                  <option value="revising">Revising</option>
-                  <option value="submitted">Submitted</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </label>
-              <label>
-                <span>Section</span>
-                <input value={manuscriptDraft.section} onChange={(e) => updateManuscriptDraft('section', e.target.value)} placeholder="Intro, methods, discussion, full draft" />
-              </label>
-              <label>
-                <span>Last edited</span>
-                <input type="date" value={manuscriptDraft.lastEdited} onChange={(e) => updateManuscriptDraft('lastEdited', e.target.value)} />
-              </label>
-              <label className="wide">
-                <span>Google Drive draft URL</span>
-                <input value={manuscriptDraft.driveUrl} onChange={(e) => updateManuscriptDraft('driveUrl', e.target.value)} placeholder="https://docs.google.com/document/... or Drive file URL" />
-              </label>
-              <label className="wide">
-                <span>Draft summary / current state</span>
-                <textarea value={manuscriptDraft.summary} onChange={(e) => updateManuscriptDraft('summary', e.target.value)} placeholder="What this version contains, what changed, what section it covers." />
-              </label>
-              <label className="wide">
-                <span>Open writing tasks</span>
-                <textarea value={manuscriptDraft.openTasks} onChange={(e) => updateManuscriptDraft('openTasks', e.target.value)} placeholder="Next paragraph, missing citations, revise intro, respond to comments..." />
-              </label>
-              <div className="paper-form-actions">
-                <span>Drive stores the draft; Supabase stores the writing index.</span>
-                <button onClick={addManuscriptDraft} disabled={!manuscriptDraft.title.trim() || !manuscriptDraft.driveUrl.trim()}>Add draft version</button>
-              </div>
-            </div>
-          </div>
-
-          <div className="research-memory">
-            <div className="memory-head">
-              <div>
-                <div className="lbl">Research memory</div>
-                <p>Paper metadata and notes linked to this project. These summaries are included in AI context.</p>
-              </div>
-              <span>{p.papers?.length || 0} linked</span>
-            </div>
-
-            {p.papers?.length ? (
-              <div className="paper-list">
-                {p.papers.map((paper) => (
-                  <article className="paper-card" key={paper.id}>
-                    <div>
-                      <h3>{paper.title}</h3>
-                      <p>
-                        {[paper.authors, paper.year, paper.status, paper.version].filter(Boolean).join(' · ') || 'No metadata yet'}
-                      </p>
-                    </div>
-                    <div className="paper-links">
-                      {paper.driveUrl && <a href={paper.driveUrl} target="_blank" rel="noreferrer">Drive</a>}
-                      {paper.sourceUrl && <a href={paper.sourceUrl} target="_blank" rel="noreferrer">Source</a>}
-                      {paper.doi && <a href={`https://doi.org/${paper.doi.replace(/^https?:\/\/doi.org\//, '')}`} target="_blank" rel="noreferrer">DOI</a>}
-                      <button onClick={() => onRemovePaper(p.id, paper.id)}>Unlink</button>
-                    </div>
-                    {(paper.abstract || paper.keyFindings || paper.relevance || paper.relevanceNote) && (
-                      <dl>
-                        {paper.abstract && <><dt>Abstract</dt><dd>{paper.abstract}</dd></>}
-                        {paper.keyFindings && <><dt>Key findings</dt><dd>{paper.keyFindings}</dd></>}
-                        {paper.relevance && <><dt>Relevance</dt><dd>{paper.relevance}</dd></>}
-                        {paper.relevanceNote && <><dt>Project note</dt><dd>{paper.relevanceNote}</dd></>}
-                      </dl>
-                    )}
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-memory">No papers linked yet.</div>
-            )}
-
-            <div className="paper-form">
-              <label>
-                <span>Title</span>
-                <input value={paperDraft.title} onChange={(e) => updatePaperDraft('title', e.target.value)} placeholder="Paper or draft title" />
-              </label>
-              <label>
-                <span>Authors</span>
-                <input value={paperDraft.authors} onChange={(e) => updatePaperDraft('authors', e.target.value)} placeholder="Author list" />
-              </label>
-              <label>
-                <span>Year</span>
-                <input value={paperDraft.year} onChange={(e) => updatePaperDraft('year', e.target.value)} placeholder="2026" />
-              </label>
-              <label>
-                <span>Status</span>
-                <select value={paperDraft.status} onChange={(e) => updatePaperDraft('status', e.target.value)}>
-                  <option value="reference">Reference</option>
-                  <option value="to-read">To read</option>
-                  <option value="summarized">Summarized</option>
-                  <option value="draft">Draft</option>
-                  <option value="submitted">Submitted</option>
-                </select>
-              </label>
-              <label>
-                <span>DOI</span>
-                <input value={paperDraft.doi} onChange={(e) => updatePaperDraft('doi', e.target.value)} placeholder="10.xxxx/xxxxx" />
-              </label>
-              <label>
-                <span>Version</span>
-                <input value={paperDraft.version} onChange={(e) => updatePaperDraft('version', e.target.value)} placeholder="v1, submitted, proof" />
-              </label>
-              <label className="wide">
-                <span>Google Drive URL</span>
-                <input value={paperDraft.driveUrl} onChange={(e) => updatePaperDraft('driveUrl', e.target.value)} placeholder="https://drive.google.com/..." />
-              </label>
-              <label className="wide">
-                <span>Source URL</span>
-                <input value={paperDraft.sourceUrl} onChange={(e) => updatePaperDraft('sourceUrl', e.target.value)} placeholder="Journal, preprint, PubMed, etc." />
-              </label>
-              <label className="wide">
-                <span>Abstract / summary</span>
-                <textarea value={paperDraft.abstract} onChange={(e) => updatePaperDraft('abstract', e.target.value)} placeholder="Paste the abstract or your own short summary." />
-              </label>
-              <label className="wide">
-                <span>Key findings</span>
-                <textarea value={paperDraft.keyFindings} onChange={(e) => updatePaperDraft('keyFindings', e.target.value)} placeholder="Main claims, results, or useful ideas." />
-              </label>
-              <label className="wide">
-                <span>Methods / evidence</span>
-                <textarea value={paperDraft.methods} onChange={(e) => updatePaperDraft('methods', e.target.value)} placeholder="Study design, sample, model, methods, evidence type." />
-              </label>
-              <label className="wide">
-                <span>Quotes / notes</span>
-                <textarea value={paperDraft.quotesNotes} onChange={(e) => updatePaperDraft('quotesNotes', e.target.value)} placeholder="Important quotes, caveats, or reading notes." />
-              </label>
-              <label className="wide">
-                <span>Relevance to this project</span>
-                <textarea value={paperDraft.relevance} onChange={(e) => updatePaperDraft('relevance', e.target.value)} placeholder="Why this paper matters for this project." />
-              </label>
-              <div className="paper-form-actions">
-                <span>Files stay in Drive; this stores the index and summaries.</span>
-                <button onClick={addPaper} disabled={!paperDraft.title.trim()}>Add paper memory</button>
-              </div>
-            </div>
-
-            <div className="reference-search">
-              <div className="memory-head">
+            {latestDriveDoc ? (
+              <div className="drive-summary">
                 <div>
-                  <div className="lbl">External reference search</div>
-                  <p>Search scholarly metadata, then save candidates into this project&apos;s research memory.</p>
+                  <span className="drive-summary-label">Latest draft guess</span>
+                  <h3>{latestDriveDoc.name}</h3>
+                  <p>{[latestDriveDoc.projectGuess, latestDriveDoc.versionGuess, latestDriveDoc.modifiedAt?.slice(0, 10)].filter(Boolean).join(' · ') || 'No Drive metadata yet'}</p>
                 </div>
+                <a href={latestDriveDoc.url} target="_blank" rel="noreferrer">Open in Drive</a>
               </div>
-              <div className="reference-search-row">
-                <input
-                  value={referenceQuery}
-                  onChange={(e) => setReferenceQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') searchReferences();
-                  }}
-                  placeholder="flow state active inference, ketamine consciousness, moral cognition AI..."
-                />
-                <button onClick={searchReferences} disabled={referenceState === 'searching' || referenceQuery.trim().length < 3}>
-                  {referenceState === 'searching' ? 'Searching...' : 'Search papers'}
-                </button>
+            ) : (
+              <div className="empty-memory">No synced Drive files currently match this project.</div>
+            )}
+
+            {p.driveDocuments?.length ? (
+              <div className="drive-match-list">
+                {p.driveDocuments.map((doc) => (
+                  <article key={doc.fileId} className="drive-match-card">
+                    <div>
+                      <h3>{doc.name}</h3>
+                      <p>
+                        {[doc.projectGuess, doc.versionGuess, doc.modifiedAt?.slice(0, 10), doc.indexedAt ? `indexed ${doc.indexedAt.slice(0, 10)}` : ''].filter(Boolean).join(' · ')}
+                      </p>
+                      {doc.excerpt && <p className="abstract-preview">{doc.excerpt.slice(0, 260)}{doc.excerpt.length > 260 ? '...' : ''}</p>}
+                    </div>
+                    <a href={doc.url} target="_blank" rel="noreferrer">Open</a>
+                  </article>
+                ))}
               </div>
-              {referenceMessage && <div className={classNames('ai-message', referenceState === 'error' && 'error')}>{referenceMessage}</div>}
-              {referenceResults.length > 0 && (
-                <div className="reference-results">
-                  {referenceResults.map((result) => (
-                    <article key={result.id} className="reference-result">
-                      <div>
-                        <h3>{result.title}</h3>
-                        <p>{[result.authors, result.year, result.citedByCount ? `${result.citedByCount} citations` : ''].filter(Boolean).join(' · ')}</p>
-                        {result.abstract && <p className="abstract-preview">{result.abstract.slice(0, 360)}{result.abstract.length > 360 ? '...' : ''}</p>}
-                      </div>
-                      <div className="paper-links">
-                        {result.sourceUrl && <a href={result.sourceUrl} target="_blank" rel="noreferrer">Source</a>}
-                        <button onClick={() => saveReferenceCandidate(result)}>Save reference</button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </div>
+            ) : null}
+
+            {driveSuggestions.length ? (
+              <div className="drive-suggestion-strip">
+                <span>Suggested updates</span>
+                {driveSuggestions.map((suggestion) => (
+                  <button key={suggestion.id} onClick={() => applyDriveSuggestion(suggestion)}>
+                    {suggestion.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="ai-panel">
@@ -646,6 +391,14 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
                   {aiState === 'working' && activeAiAction === action.id ? action.verb : action.title}
                 </button>
               ))}
+              <button
+                className={activeAiAction === 'collaborator_scout' ? 'active' : ''}
+                onClick={runCollaboratorScout}
+                disabled={aiState === 'working'}
+                title="Search the web for public collaborator candidates with source links."
+              >
+                {aiState === 'working' && activeAiAction === 'collaborator_scout' ? 'Scouting...' : 'Scout collaborators'}
+              </button>
             </div>
             {aiMessage && <div className={classNames('ai-message', aiState === 'error' && 'error')}>{aiMessage}</div>}
             {aiDraft?.response && (

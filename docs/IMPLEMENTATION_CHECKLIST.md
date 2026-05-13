@@ -130,19 +130,22 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 
 ## Phase 6B: Drive-Derived Project Intelligence
 
-- [ ] Remove or hide the manual `Manuscript versions` section from project detail.
-- [ ] Remove or hide the manual `Research memory` section from project detail.
-- [ ] Add compact `Synced Drive context` section to project detail:
+- [x] Remove or hide the manual `Manuscript versions` section from project detail.
+- [x] Remove or hide the manual `Research memory` section from project detail.
+- [x] Add compact `Synced Drive context` section to project detail:
   - matched Drive files
   - latest draft guess
   - modified date
   - version guess
   - open-in-Drive link
   - last indexed time
-- [ ] Add Drive file/project matching review UI.
-- [ ] Add AI-generated project suggestions from indexed Drive files.
-- [ ] Add approve/reject flow for creating a project from a Drive file.
-- [ ] Add approve/reject flow for updating existing project fields from Drive-derived metadata.
+- [x] Add Drive file/project matching review UI.
+- [x] Add AI-generated project suggestions from indexed Drive files.
+  - `/api/drive-suggest` generates review-only project and update proposals from indexed Drive text and current project records.
+- [x] Add approve/reject flow for creating a project from a Drive file.
+  - Approve creates the project; leaving the suggestion alone rejects/defer it for now.
+- [x] Add approve/reject flow for updating existing project fields from Drive-derived metadata.
+  - Approve buttons apply individual suggested patches; leaving them alone rejects/defer them for now.
 - [ ] Extract or infer:
   - title
   - likely project/paper name
@@ -153,22 +156,35 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
   - abstract/summary
   - references/citations present in the document
   - suggested next action
-- [ ] Add safeguards so AI-created projects are draft suggestions until the user approves them.
-- [ ] Add tests for Drive-to-project matching and suggestion formatting.
+  - Current implementation infers title/project name, status, domain/tags, summary notes, and next action. Authors/collaborators and references/citations still need richer extraction.
+- [x] Add safeguards so AI-created projects are draft suggestions until the user approves them.
+  - Drive-derived project records are not persisted until the user clicks `Approve project`.
+- [x] Add tests for Drive-to-project matching and suggestion formatting.
+- [x] Add persistent approve/dismiss tracking for Drive suggestions.
+  - Reviews are stored in `drive_suggestion_reviews` so dismissed/approved suggestions can stay out of the queue.
+
+## Phase 6C: Collaboration Automation
+
+- [x] Add a handoff brief action for “where did we leave off?”
+- [x] Add internet-backed collaborator scouting.
+  - `/api/collaborator-scout` uses OpenAI web search and returns cited collaborator candidates for approval/review.
+- [ ] Add contact/save flow for collaborator candidates.
+- [ ] Add dedicated writing handoff panel combining latest draft, handoff brief, and next paragraph.
+- [ ] Add tests for live collaborator-scout response formatting when API credentials are available.
 
 ## Phase 7: Product Polish
 
-- [ ] Create favicon.
-- [ ] Wire favicon into `index.html` or the app shell.
-- [ ] Improve empty/loading/error states.
-- [ ] Check responsive behavior across desktop and mobile widths.
-- [ ] Add small accessibility pass:
+- [x] Create favicon.
+- [x] Wire favicon into `index.html` or the app shell.
+- [x] Improve empty/loading/error states.
+- [x] Check responsive behavior across desktop and mobile widths.
+- [x] Add small accessibility pass:
   - real buttons for clickable controls
   - dialog focus behavior
   - keyboard support
   - labels
-- [ ] Add final README setup instructions.
-- [ ] Add deployment notes for required environment variables.
+- [x] Add final README setup instructions.
+- [x] Add deployment notes for required environment variables.
 
 ## Information Needed From You
 
