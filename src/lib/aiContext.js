@@ -43,6 +43,16 @@ export function buildProjectContext(project, people) {
       openTasks: draft.openTasks || '',
       lastEdited: draft.lastEdited || '',
     }));
+  const driveDocuments = (project.driveDocuments || [])
+    .slice(0, 5)
+    .map((doc) => ({
+      name: doc.name,
+      url: doc.url || '',
+      projectGuess: doc.projectGuess || '',
+      versionGuess: doc.versionGuess || '',
+      modifiedAt: doc.modifiedAt || '',
+      excerpt: doc.excerpt || '',
+    }));
 
   return {
     id: project.id,
@@ -67,6 +77,7 @@ export function buildProjectContext(project, people) {
     history,
     papers,
     drafts,
+    driveDocuments,
   };
 }
 
@@ -87,11 +98,23 @@ export function projectContextToPrompt(context) {
     context.notes ? `Project notes:\n${context.notes}` : '',
     context.links.length ? `Links:\n${context.links.join('\n')}` : '',
     context.drafts?.length ? `Manuscript versions:\n${context.drafts.map(draftToPrompt).join('\n\n')}` : '',
+    context.driveDocuments?.length ? `Synced Research Drive documents relevant to this project:\n${context.driveDocuments.map(driveDocumentToPrompt).join('\n\n')}` : '',
     context.papers?.length ? `Research memory:\n${context.papers.map(paperToPrompt).join('\n\n')}` : '',
     context.history.length ? `Recent history:\n${context.history.join('\n')}` : '',
   ]
     .filter(Boolean)
     .join('\n\n');
+}
+
+function driveDocumentToPrompt(doc) {
+  return [
+    `Drive document: ${doc.name}`,
+    doc.projectGuess ? `Project guess: ${doc.projectGuess}` : '',
+    doc.versionGuess ? `Version guess: ${doc.versionGuess}` : '',
+    doc.modifiedAt ? `Modified: ${doc.modifiedAt}` : '',
+    doc.url ? `URL: ${doc.url}` : '',
+    doc.excerpt ? `Synced excerpt:\n${doc.excerpt}` : '',
+  ].filter(Boolean).join('\n');
 }
 
 function draftToPrompt(draft) {

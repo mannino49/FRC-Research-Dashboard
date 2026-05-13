@@ -627,6 +627,11 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
               <div>
                 <div className="lbl">AI project assistant</div>
                 <p>Choose an operational prompt grounded only in this project&apos;s dashboard context.</p>
+                {p.driveDocuments?.length ? (
+                  <div className="drive-context-note">
+                    Includes {p.driveDocuments.length} synced Drive {p.driveDocuments.length === 1 ? 'document' : 'documents'}.
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="ai-prompts" aria-label="Suggested AI prompts">

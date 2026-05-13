@@ -60,6 +60,28 @@ describe('AI project context', () => {
     expect(prompt).toContain('Open writing tasks: Write the next paragraph');
   });
 
+  it('includes relevant synced Drive documents in the AI prompt', () => {
+    const project = {
+      ...PROJECTS.find((item) => item.id === 'p8708'),
+      driveDocuments: [
+        {
+          name: 'MoralCognition_Intro_sk_v6_2.docx',
+          url: 'https://docs.google.com/document/d/demo',
+          projectGuess: 'moral cognition',
+          versionGuess: 'v6_2',
+          modifiedAt: '2026-04-15T13:37:50.000Z',
+          excerpt: 'AI alignment is among the most consequential open problems.',
+        },
+      ],
+    };
+    const context = buildProjectContext(project, PEOPLE);
+    const prompt = projectContextToPrompt(context);
+
+    expect(prompt).toContain('Synced Research Drive documents relevant to this project:');
+    expect(prompt).toContain('Drive document: MoralCognition_Intro_sk_v6_2.docx');
+    expect(prompt).toContain('AI alignment is among the most consequential');
+  });
+
   it('defines operational prompt actions for current dashboard data', () => {
     expect(AI_ACTIONS.map((action) => action.id)).toEqual([
       'summarize_status',

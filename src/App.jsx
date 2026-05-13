@@ -21,6 +21,7 @@ import {
   updatePersonRecord,
   updateProjectRecord,
 } from './lib/dashboardRepository.js';
+import { relevantDriveDocuments } from './lib/driveMatch.js';
 import { STATUSES, TYPES, classNames, personById, typeWord } from './utils.js';
 
 export default function App() {
@@ -327,7 +328,14 @@ export default function App() {
     setDriveDocuments(docs);
   }
 
-  const selected = projects.find((p) => p.id === selectedId);
+  const selectedProject = projects.find((p) => p.id === selectedId);
+  const selected = React.useMemo(() => {
+    if (!selectedProject) return null;
+    return {
+      ...selectedProject,
+      driveDocuments: relevantDriveDocuments(selectedProject, driveDocuments),
+    };
+  }, [driveDocuments, selectedProject]);
   const turnOptions = React.useMemo(() => {
     const ids = new Set(['MM', 'SK']);
     for (const project of projects) {
