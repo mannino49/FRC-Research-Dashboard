@@ -13,8 +13,17 @@ async function authedPost(path, body) {
     body: JSON.stringify(body || {}),
   });
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Request failed.');
+  const text = await response.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = {};
+  }
+  if (!response.ok) {
+    const detail = data.error || text || response.statusText || 'Request failed.';
+    throw new Error(`${detail} (${response.status})`);
+  }
   return data;
 }
 
