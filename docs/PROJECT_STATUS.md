@@ -117,7 +117,7 @@ npm run build
 Current test count:
 
 ```text
-6 files, 13 tests passing
+6 files, 14 tests passing
 ```
 
 Known npm note:
@@ -166,9 +166,13 @@ Do not commit `.env` or `.env.local`.
 ## Recommended Next Steps
 
 1. Verify production login and edit persistence for both dashboard users.
-2. Run the Research Drive index migration in production.
-3. Add Google service account env vars in Netlify and share the Research Drive folder with that service account.
-4. Verify Drive AI can sync the Research Drive and answer a latest-draft question.
+2. Simplify the project detail panel by removing or hiding the manual `Manuscript versions` and `Research memory` sections.
+3. Replace those manual sections with a compact `Synced Drive context` section showing matched files, latest draft guess, modified date, and open-in-Drive links.
+4. Add Drive-derived project intelligence:
+   - detect likely projects from newly synced Drive files
+   - suggest project records from manuscript metadata/content
+   - let the user approve creation or update of project fields
+5. Add a handoff-safe review flow before AI-created projects are persisted.
 
 ## Phase 5 Preview
 
@@ -178,9 +182,9 @@ Likely next build items:
 - Configurable people, categories, statuses, and project types.
 - More polished notes and link editing.
 
-## Phase 6 Preview
+## Phase 6 Current State
 
-First AI workflow is a server-side project-operations assistant:
+AI is now centered on the Research Drive index plus project operations:
 
 - Browser sends project context and Supabase session token to `/api/ai`.
 - Netlify function verifies the Supabase user before calling OpenAI.
@@ -191,3 +195,18 @@ First AI workflow is a server-side project-operations assistant:
 - Research memory now stores paper metadata and summaries in Supabase while keeping files and drafts in Google Drive.
 - Manuscript memory stores Google Drive draft/version links and writing summaries.
 - Drive AI can sync the configured Research Drive into `drive_documents` and answer questions over indexed Google Docs / Word docs.
+- Project-panel AI now receives relevant synced Drive documents when filenames/project guesses match the project.
+- The manual `Manuscript versions` and `Research memory` sections are now legacy scaffolding; they should be removed or collapsed in favor of Drive-derived context.
+
+## Current Product Direction
+
+The desired user experience is:
+
+```text
+Upload or edit files in Research Drive.
+Click Sync Research Drive.
+AI understands the indexed Drive contents.
+AI can identify the latest draft, summarize it, answer questions, and help create/update project records.
+```
+
+Supabase should remain the structured index and audit layer. Google Drive remains the source of truth for documents and version history. The AI should work from the indexed Drive contents and propose project updates rather than requiring manual metadata entry.

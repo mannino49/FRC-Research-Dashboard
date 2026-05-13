@@ -107,6 +107,7 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
 - [x] Add Research Drive index table for Drive-wide document search.
 - [x] Add server-side Drive sync endpoint for Google Docs and Word docs.
 - [x] Add Drive AI page for syncing and asking questions across the indexed Research Drive.
+- [x] Include relevant synced Drive context in project-panel AI prompts.
 - [ ] Add “Draft abstract” action.
 - [x] Add operational suggested prompts:
   - summarize project status
@@ -126,6 +127,34 @@ See [Phase 0 decisions](PHASE_0_DECISIONS.md) for the proposed choices and ratio
   - avoid fabricated publication facts
   - ask for missing details when needed
 - [x] Add tests for prompt context assembly and endpoint validation.
+
+## Phase 6B: Drive-Derived Project Intelligence
+
+- [ ] Remove or hide the manual `Manuscript versions` section from project detail.
+- [ ] Remove or hide the manual `Research memory` section from project detail.
+- [ ] Add compact `Synced Drive context` section to project detail:
+  - matched Drive files
+  - latest draft guess
+  - modified date
+  - version guess
+  - open-in-Drive link
+  - last indexed time
+- [ ] Add Drive file/project matching review UI.
+- [ ] Add AI-generated project suggestions from indexed Drive files.
+- [ ] Add approve/reject flow for creating a project from a Drive file.
+- [ ] Add approve/reject flow for updating existing project fields from Drive-derived metadata.
+- [ ] Extract or infer:
+  - title
+  - likely project/paper name
+  - authors/collaborators
+  - manuscript status
+  - latest version
+  - domain/tags
+  - abstract/summary
+  - references/citations present in the document
+  - suggested next action
+- [ ] Add safeguards so AI-created projects are draft suggestions until the user approves them.
+- [ ] Add tests for Drive-to-project matching and suggestion formatting.
 
 ## Phase 7: Product Polish
 
