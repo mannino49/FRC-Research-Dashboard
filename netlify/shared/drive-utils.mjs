@@ -141,7 +141,6 @@ export function isSupportedDriveFile(file) {
   return Boolean(
     GOOGLE_EXPORT_MIME_TYPES[file.mimeType]
     || RAW_TEXT_MIME_TYPES.has(file.mimeType)
-    || file.mimeType === 'application/pdf'
     || file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   );
 }
@@ -173,20 +172,6 @@ async function mediaBuffer(file, accessToken) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-async function extractPdfText(buffer) {
-  // Netlify's Node runtime does not always expose DOMMatrix, but PDF.js touches
-  // it during module initialization even when we only extract text.
-  globalThis.DOMMatrix ||= class DOMMatrix {};
-  const { PDFParse } = await import('pdf-parse');
-  const parser = new PDFParse({ data: buffer });
-  try {
-    const result = await parser.getText();
-    return result.text || '';
-  } finally {
-    await parser.destroy();
-  }
-}
-
 export async function extractText(file, accessToken) {
   if (GOOGLE_EXPORT_MIME_TYPES[file.mimeType]) {
     const response = await driveFetch(`/files/${file.id}/export`, accessToken, { mimeType: GOOGLE_EXPORT_MIME_TYPES[file.mimeType] });
@@ -197,10 +182,6 @@ export async function extractText(file, accessToken) {
     const buffer = await mediaBuffer(file, accessToken);
     const result = await mammoth.extractRawText({ buffer });
     return result.value || '';
-  }
-
-  if (file.mimeType === 'application/pdf') {
-    return extractPdfText(await mediaBuffer(file, accessToken));
   }
 
   if (RAW_TEXT_MIME_TYPES.has(file.mimeType)) {
