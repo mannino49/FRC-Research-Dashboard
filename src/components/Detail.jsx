@@ -9,11 +9,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
   const [editingStatus, setEditingStatus] = React.useState(false);
   const [editingTurn, setEditingTurn] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
-  const [noteDraft, setNoteDraft] = React.useState('');
-  const [noteAuthor, setNoteAuthor] = React.useState('MM');
   const [notesDraft, setNotesDraft] = React.useState(project?.notes || '');
-  const [linkKind, setLinkKind] = React.useState('');
-  const [linkUrl, setLinkUrl] = React.useState('');
   const [aiState, setAiState] = React.useState('idle');
   const [aiMessage, setAiMessage] = React.useState('');
   const [aiDraft, setAiDraft] = React.useState(null);
@@ -21,8 +17,6 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
 
   React.useEffect(() => {
     setNotesDraft(project?.notes || '');
-    setLinkKind('');
-    setLinkUrl('');
     setConfirmDelete(false);
     setAiState('idle');
     setAiMessage('');
@@ -44,39 +38,10 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
   const latestDriveDoc = latestDriveDocument(p.driveDocuments);
   const driveSuggestions = projectUpdateSuggestions(p, p.driveDocuments);
 
-  function postNote() {
-    if (!noteDraft.trim()) return;
-    const today = new Date().toISOString().slice(0, 10);
-    onHistory(p.id, { d: today, who: noteAuthor, t: noteDraft.trim() });
-    onPatch(p.id, { updated: today, note: noteDraft.trim() });
-    setNoteDraft('');
-  }
-
   function saveNotes() {
     onPatch(p.id, {
       notes: notesDraft,
       updated: new Date().toISOString().slice(0, 10),
-    });
-  }
-
-  function addLink() {
-    if (!linkKind.trim() || !linkUrl.trim()) return;
-    const nextLinks = [
-      ...p.links,
-      {
-        id: crypto.randomUUID(),
-        kind: linkKind.trim(),
-        url: linkUrl.trim(),
-      },
-    ];
-    onPatch(p.id, { links: nextLinks });
-    setLinkKind('');
-    setLinkUrl('');
-  }
-
-  function removeLink(idOrKind) {
-    onPatch(p.id, {
-      links: p.links.filter((link) => (link.id || link.kind) !== idOrKind),
     });
   }
 
@@ -223,19 +188,6 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
             <dd>
               {p.venueUrl ? <a className="text-link" href={p.venueUrl} target="_blank" rel="noreferrer"><em>{p.venue}</em></a> : <em>{p.venue}</em>}
             </dd>
-
-            <dt>Domain</dt>
-            <dd>{p.domain || <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>uncategorized</span>}</dd>
-
-            <dt>Tags</dt>
-            <dd>
-              {p.tags?.length ? (
-                <div className="tag-list">{p.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-              ) : (
-                <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>none</span>
-              )}
-            </dd>
-
             <dt>Co-authors</dt>
             <dd>
               {p.coauthors.length === 0 ? (
@@ -278,27 +230,6 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
                   </span>
                 </>
               )}
-            </dd>
-
-            <dt>Links</dt>
-            <dd>
-              {p.links.length === 0 ? (
-                <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>none</span>
-              ) : (
-                <div className="links editable-links">
-                  {p.links.map((l) => (
-                    <span key={l.id || l.kind} className="link-chip">
-                      <a href={l.url} target="_blank" rel="noreferrer">{l.kind}</a>
-                      <button onClick={() => removeLink(l.id || l.kind)} aria-label={`Remove ${l.kind}`}>×</button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="link-editor">
-                <input value={linkKind} onChange={(e) => setLinkKind(e.target.value)} placeholder="Label" />
-                <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://…" />
-                <button onClick={addLink}>Add</button>
-              </div>
             </dd>
           </dl>
 
@@ -440,19 +371,6 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="addnote">
-            <div className="lbl sc" style={{ marginBottom: 8 }}>Add a note / update</div>
-            <textarea value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} placeholder="A short line. The next thing to do, or what just happened." />
-            <div className="actions">
-              <div className="hand">
-                <span style={{ color: 'var(--ink-4)' }}>as</span>
-                <span className={classNames('pick', noteAuthor === 'MM' && 'on')} onClick={() => setNoteAuthor('MM')}>MM</span>
-                <span className={classNames('pick', noteAuthor === 'SK' && 'on')} onClick={() => setNoteAuthor('SK')}>SK</span>
-              </div>
-              <button className="post" onClick={postNote}>Post · ↵</button>
-            </div>
           </div>
 
           <div className="history">

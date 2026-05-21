@@ -32,6 +32,7 @@ function versionWeight(versionGuess = '') {
 }
 
 function scoreDriveDocument(project, doc) {
+  const titleTokens = new Set(tokens(project.title));
   const projectTokens = new Set(tokens([
     project.title,
     project.domain,
@@ -47,15 +48,27 @@ function scoreDriveDocument(project, doc) {
     doc.folderPath,
   ].filter(Boolean).join(' ').toLowerCase();
 
+  let titleMatchScore = 0;
+  for (const token of titleTokens) {
+    if (docText.includes(token)) titleMatchScore += 4;
+  }
+
+  const title = project.title.toLowerCase();
+  const projectGuess = String(doc.projectGuess || '').toLowerCase();
+  const projectGuessTokens = tokens(projectGuess);
+  const projectGuessMatchesTitle = Boolean(projectGuess && title.includes(projectGuess));
+  const projectGuessTokenMatchesTitle = projectGuessTokens.length > 0 && projectGuessTokens.every((part) => title.includes(part));
+
+  if (!titleMatchScore && !projectGuessMatchesTitle && !projectGuessTokenMatchesTitle) return 0;
+
   let score = 0;
   for (const token of projectTokens) {
     if (docText.includes(token)) score += 3;
   }
 
-  const title = project.title.toLowerCase();
-  const projectGuess = String(doc.projectGuess || '').toLowerCase();
-  if (projectGuess && title.includes(projectGuess)) score += 6;
-  if (projectGuess && projectGuess.split(/\s+/).some((part) => title.includes(part))) score += 2;
+  score += titleMatchScore;
+  if (projectGuessMatchesTitle) score += 6;
+  if (projectGuessTokenMatchesTitle) score += 2;
 
   score += versionWeight(doc.versionGuess);
   return score;
