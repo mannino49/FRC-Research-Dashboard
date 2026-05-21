@@ -1,9 +1,25 @@
 import crypto from 'node:crypto';
 import mammoth from 'mammoth';
+import { PDFParse } from 'pdf-parse';
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+const GOOGLE_EXPORT_MIME_TYPES = {
+  'application/vnd.google-apps.document': 'text/plain',
+  'application/vnd.google-apps.presentation': 'text/plain',
+  'application/vnd.google-apps.spreadsheet': 'text/csv',
+};
+const RAW_TEXT_MIME_TYPES = new Set([
+  'application/json',
+  'application/xml',
+  'application/xhtml+xml',
+  'text/csv',
+  'text/html',
+  'text/markdown',
+  'text/plain',
+  'text/xml',
+]);
 
 export function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
@@ -122,22 +138,66 @@ export async function listFolder(folderId, accessToken, folderPath = '') {
   return files;
 }
 
+export function isSupportedDriveFile(file) {
+  return Boolean(
+    GOOGLE_EXPORT_MIME_TYPES[file.mimeType]
+    || RAW_TEXT_MIME_TYPES.has(file.mimeType)
+    || file.mimeType === 'application/pdf'
+    || file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  );
+}
+
+function cleanText(text, mimeType) {
+  if (!text) return '';
+  if (mimeType === 'text/html' || mimeType === 'application/xhtml+xml') {
+    return text
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+  return text;
+}
+
+async function mediaText(file, accessToken) {
+  const response = await driveFetch(`/files/${file.id}`, accessToken, { alt: 'media', supportsAllDrives: 'true' });
+  return response.text();
+}
+
+async function mediaBuffer(file, accessToken) {
+  const response = await driveFetch(`/files/${file.id}`, accessToken, { alt: 'media', supportsAllDrives: 'true' });
+  return Buffer.from(await response.arrayBuffer());
+}
+
 export async function extractText(file, accessToken) {
-  if (file.mimeType === 'application/vnd.google-apps.document') {
-    const response = await driveFetch(`/files/${file.id}/export`, accessToken, { mimeType: 'text/plain' });
-    return response.text();
+  if (GOOGLE_EXPORT_MIME_TYPES[file.mimeType]) {
+    const response = await driveFetch(`/files/${file.id}/export`, accessToken, { mimeType: GOOGLE_EXPORT_MIME_TYPES[file.mimeType] });
+    return cleanText(await response.text(), GOOGLE_EXPORT_MIME_TYPES[file.mimeType]);
   }
 
   if (file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    const response = await driveFetch(`/files/${file.id}`, accessToken, { alt: 'media', supportsAllDrives: 'true' });
-    const buffer = Buffer.from(await response.arrayBuffer());
+    const buffer = await mediaBuffer(file, accessToken);
     const result = await mammoth.extractRawText({ buffer });
     return result.value || '';
   }
 
-  if (file.mimeType === 'text/plain') {
-    const response = await driveFetch(`/files/${file.id}`, accessToken, { alt: 'media', supportsAllDrives: 'true' });
-    return response.text();
+  if (file.mimeType === 'application/pdf') {
+    const parser = new PDFParse({ data: await mediaBuffer(file, accessToken) });
+    try {
+      const result = await parser.getText();
+      return result.text || '';
+    } finally {
+      await parser.destroy();
+    }
+  }
+
+  if (RAW_TEXT_MIME_TYPES.has(file.mimeType)) {
+    return cleanText(await mediaText(file, accessToken), file.mimeType);
   }
 
   return '';

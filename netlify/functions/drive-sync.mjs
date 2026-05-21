@@ -1,14 +1,6 @@
-import { extractText, googleAccessToken, json, listFolder, requireSupabaseUser, toDriveDocument } from '../shared/drive-utils.mjs';
+import { extractText, googleAccessToken, isSupportedDriveFile, json, listFolder, requireSupabaseUser, toDriveDocument } from '../shared/drive-utils.mjs';
 
 const DEFAULT_FOLDER_ID = '1KfCxeMtT_2aTUPGTPNAdyGhOxYlSmSwi';
-
-function supported(file) {
-  return [
-    'application/vnd.google-apps.document',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain',
-  ].includes(file.mimeType);
-}
 
 async function upsertDocuments(auth, documents) {
   if (!documents.length) return [];
@@ -50,14 +42,24 @@ export default async (req) => {
     const files = await listFolder(folderId, accessToken);
     const documents = [];
     const skipped = [];
+    const failed = [];
 
     for (const file of files) {
-      if (!supported(file)) {
+      if (!isSupportedDriveFile(file)) {
         skipped.push({ id: file.id, name: file.name, mimeType: file.mimeType });
         continue;
       }
-      const text = await extractText(file, accessToken);
-      documents.push(toDriveDocument(file, text));
+      try {
+        const text = await extractText(file, accessToken);
+        documents.push(toDriveDocument(file, text));
+      } catch (error) {
+        failed.push({
+          id: file.id,
+          name: file.name,
+          mimeType: file.mimeType,
+          error: error.message || 'Extraction failed.',
+        });
+      }
     }
 
     const saved = await upsertDocuments(auth, documents);
@@ -66,6 +68,9 @@ export default async (req) => {
       scanned: files.length,
       indexed: saved.length,
       skipped: skipped.length,
+      failed: failed.length,
+      unsupportedSamples: skipped.slice(0, 12),
+      failedSamples: failed.slice(0, 12),
       documents: saved.map((doc) => ({
         fileId: doc.file_id,
         name: doc.name,

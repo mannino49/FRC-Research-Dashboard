@@ -264,16 +264,23 @@ export async function loadDashboardData() {
 export async function loadDriveDocuments() {
   if (!isSupabaseConfigured) return [];
 
-  const { data, error } = await supabase
-    .from('drive_documents')
-    .select('file_id,name,mime_type,web_url,folder_path,modified_at,project_guess,version_guess,text_excerpt,indexed_at')
-    .order('modified_at', { ascending: false, nullsFirst: false })
-    .limit(100);
+  const rows = [];
+  const pageSize = 1000;
 
-  if (isMissingRelation(error)) return [];
-  if (error) throw error;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from('drive_documents')
+      .select('file_id,name,mime_type,web_url,folder_path,modified_at,project_guess,version_guess,text_excerpt,indexed_at')
+      .order('modified_at', { ascending: false, nullsFirst: false })
+      .range(from, from + pageSize - 1);
 
-  return (data || []).map((doc) => ({
+    if (isMissingRelation(error)) return [];
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) break;
+  }
+
+  return rows.map((doc) => ({
     fileId: doc.file_id,
     name: doc.name,
     mimeType: doc.mime_type,

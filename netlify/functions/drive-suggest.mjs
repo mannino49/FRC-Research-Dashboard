@@ -64,15 +64,21 @@ const DRIVE_SUGGESTION_SCHEMA = {
 };
 
 async function loadDocuments(auth) {
-  const response = await fetch(`${auth.supabaseUrl}/rest/v1/drive_documents?select=file_id,name,web_url,folder_path,modified_at,project_guess,version_guess,text_content,text_excerpt,indexed_at&order=modified_at.desc.nullslast&limit=40`, {
-    headers: {
-      apikey: auth.supabaseAnonKey,
-      authorization: `Bearer ${auth.token}`,
-    },
-  });
-  const data = await response.json().catch(() => []);
-  if (!response.ok) throw new Error(data.message || 'Failed to load Drive index.');
-  return data;
+  const docs = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const response = await fetch(`${auth.supabaseUrl}/rest/v1/drive_documents?select=file_id,name,web_url,folder_path,modified_at,project_guess,version_guess,text_content,text_excerpt,indexed_at&order=modified_at.desc.nullslast&limit=${pageSize}&offset=${offset}`, {
+      headers: {
+        apikey: auth.supabaseAnonKey,
+        authorization: `Bearer ${auth.token}`,
+      },
+    });
+    const data = await response.json().catch(() => []);
+    if (!response.ok) throw new Error(data.message || 'Failed to load Drive index.');
+    docs.push(...data);
+    if (data.length < pageSize) break;
+  }
+  return docs;
 }
 
 function outputText(data) {
@@ -101,7 +107,7 @@ function projectDigest(projects = []) {
 }
 
 function documentDigest(documents = []) {
-  return documents.map((doc) => ({
+  return documents.slice(0, 120).map((doc) => ({
     fileId: doc.file_id,
     name: doc.name,
     url: doc.web_url,

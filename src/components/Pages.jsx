@@ -336,7 +336,7 @@ export function DriveIndex({ documents, projects = [], onRefresh, onCreateProjec
     setMessage('');
     try {
       const result = await syncResearchDrive();
-      setMessage(`Indexed ${result.indexed} files. Skipped ${result.skipped}.`);
+      setMessage(`Scanned ${result.scanned} files. Indexed ${result.indexed}. Skipped ${result.skipped}. Failed ${result.failed || 0}.`);
       setSyncState('ready');
       await onRefresh();
     } catch (error) {

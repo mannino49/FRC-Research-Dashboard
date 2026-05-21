@@ -5,15 +5,21 @@ const MODEL = process.env.OPENAI_MODEL || 'gpt-5.4-mini';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 async function loadDocuments(auth) {
-  const response = await fetch(`${auth.supabaseUrl}/rest/v1/drive_documents?select=file_id,name,web_url,folder_path,modified_at,project_guess,version_guess,text_content,text_excerpt,indexed_at&order=modified_at.desc.nullslast&limit=100`, {
-    headers: {
-      apikey: auth.supabaseAnonKey,
-      authorization: `Bearer ${auth.token}`,
-    },
-  });
-  const data = await response.json().catch(() => []);
-  if (!response.ok) throw new Error(data.message || 'Failed to load Drive index.');
-  return data;
+  const docs = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const response = await fetch(`${auth.supabaseUrl}/rest/v1/drive_documents?select=file_id,name,web_url,folder_path,modified_at,project_guess,version_guess,text_content,text_excerpt,indexed_at&order=modified_at.desc.nullslast&limit=${pageSize}&offset=${offset}`, {
+      headers: {
+        apikey: auth.supabaseAnonKey,
+        authorization: `Bearer ${auth.token}`,
+      },
+    });
+    const data = await response.json().catch(() => []);
+    if (!response.ok) throw new Error(data.message || 'Failed to load Drive index.');
+    docs.push(...data);
+    if (data.length < pageSize) break;
+  }
+  return docs;
 }
 
 function tokens(question) {
