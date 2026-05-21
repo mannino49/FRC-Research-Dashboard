@@ -7,6 +7,23 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 const GOOGLE_EXPORT_MIME_TYPES = {
   'application/vnd.google-apps.document': 'text/plain',
 };
+const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+const FOLDER_AND_MANUSCRIPT_QUERY = [
+  `mimeType = '${FOLDER_MIME_TYPE}'`,
+  `mimeType = 'application/vnd.google-apps.document'`,
+  `mimeType = '${DOCX_MIME_TYPE}'`,
+].join(' or ');
+const IGNORED_FOLDER_NAMES = new Set([
+  '.claude',
+  '.git',
+  '.github',
+  '__pycache__',
+  'aicf-flow-model',
+  'build',
+  'dist',
+  'node_modules',
+]);
 
 export function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
@@ -103,7 +120,7 @@ export async function listFolder(folderId, accessToken, folderPath = '') {
 
   do {
     const response = await driveFetch('/files', accessToken, {
-      q: `'${folderId}' in parents and trashed = false`,
+      q: `'${folderId}' in parents and trashed = false and (${FOLDER_AND_MANUSCRIPT_QUERY})`,
       fields: 'nextPageToken,files(id,name,mimeType,modifiedTime,webViewLink)',
       pageSize: '1000',
       supportsAllDrives: 'true',
@@ -113,7 +130,8 @@ export async function listFolder(folderId, accessToken, folderPath = '') {
     const data = await response.json();
     for (const file of data.files || []) {
       const path = folderPath ? `${folderPath}/${file.name}` : file.name;
-      if (file.mimeType === 'application/vnd.google-apps.folder') {
+      if (file.mimeType === FOLDER_MIME_TYPE) {
+        if (IGNORED_FOLDER_NAMES.has(file.name.toLowerCase())) continue;
         files.push(...await listFolder(file.id, accessToken, path));
       } else {
         files.push({ ...file, folderPath });
@@ -128,7 +146,7 @@ export async function listFolder(folderId, accessToken, folderPath = '') {
 export function isSupportedDriveFile(file) {
   return Boolean(
     GOOGLE_EXPORT_MIME_TYPES[file.mimeType]
-    || file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    || file.mimeType === DOCX_MIME_TYPE,
   );
 }
 
@@ -160,7 +178,7 @@ export async function extractText(file, accessToken) {
     return cleanText(await response.text(), GOOGLE_EXPORT_MIME_TYPES[file.mimeType]);
   }
 
-  if (file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+  if (file.mimeType === DOCX_MIME_TYPE) {
     const buffer = await mediaBuffer(file, accessToken);
     const result = await mammoth.extractRawText({ buffer });
     return result.value || '';
