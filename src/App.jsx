@@ -354,7 +354,6 @@ export default function App() {
         <span className={classNames('source-pill', dataSource === 'supabase' && 'live', dataSource === 'seed' && 'fallback')}>
           {sourceLabel(dataSource, saveState)}
         </span>
-        <span className="kbd">press <kbd>⌘K</kbd> to jump · <kbd>g h</kbd> home · <kbd>g n</kbd> new · <kbd>g c</kbd> co-authors</span>
       </nav>
 
       {page === 'home' && (
