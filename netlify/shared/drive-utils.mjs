@@ -6,19 +6,7 @@ const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 const GOOGLE_EXPORT_MIME_TYPES = {
   'application/vnd.google-apps.document': 'text/plain',
-  'application/vnd.google-apps.presentation': 'text/plain',
-  'application/vnd.google-apps.spreadsheet': 'text/csv',
 };
-const RAW_TEXT_MIME_TYPES = new Set([
-  'application/json',
-  'application/xml',
-  'application/xhtml+xml',
-  'text/csv',
-  'text/html',
-  'text/markdown',
-  'text/plain',
-  'text/xml',
-]);
 
 export function json(body, init = {}) {
   return new Response(JSON.stringify(body), {
@@ -140,7 +128,6 @@ export async function listFolder(folderId, accessToken, folderPath = '') {
 export function isSupportedDriveFile(file) {
   return Boolean(
     GOOGLE_EXPORT_MIME_TYPES[file.mimeType]
-    || RAW_TEXT_MIME_TYPES.has(file.mimeType)
     || file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   );
 }
@@ -162,11 +149,6 @@ function cleanText(text, mimeType) {
   return text;
 }
 
-async function mediaText(file, accessToken) {
-  const response = await driveFetch(`/files/${file.id}`, accessToken, { alt: 'media', supportsAllDrives: 'true' });
-  return response.text();
-}
-
 async function mediaBuffer(file, accessToken) {
   const response = await driveFetch(`/files/${file.id}`, accessToken, { alt: 'media', supportsAllDrives: 'true' });
   return Buffer.from(await response.arrayBuffer());
@@ -182,10 +164,6 @@ export async function extractText(file, accessToken) {
     const buffer = await mediaBuffer(file, accessToken);
     const result = await mammoth.extractRawText({ buffer });
     return result.value || '';
-  }
-
-  if (RAW_TEXT_MIME_TYPES.has(file.mimeType)) {
-    return cleanText(await mediaText(file, accessToken), file.mimeType);
   }
 
   return '';
