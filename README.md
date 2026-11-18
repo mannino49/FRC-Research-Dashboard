@@ -18,6 +18,8 @@ Projects are grouped by status. Expand a project and choose **Open project** to 
 
 Connected saves require `supabase/migrations/20261118000000_save_reviewed_project_update.sql`. The database function applies approved changes and the history entry in one transaction. Seed-mode edits last for the current session.
 
+On the Projects page, **Meeting prep** generates an editable brief for Steven from active paper records. An optional last-meeting date helps GPT prioritize recent updates. **Check sources** opens the project evidence for each item. You can copy the draft or discard it.
+
 ## Documentation
 
 - [Project overview](docs/PROJECT_OVERVIEW.md)

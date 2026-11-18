@@ -309,7 +309,8 @@ export default function App() {
       </nav>
 
       {page === 'home' && (
-        <Home people={people} projects={projects} query={searchQuery} onSearch={setSearchQuery} onOpen={setSelectedId} onPatch={patchProject} />
+        <Home people={people} projects={projects} connected={dataSource === 'supabase'} query={searchQuery}
+          onSearch={setSearchQuery} onOpen={setSelectedId} onPatch={patchProject} />
       )}
 
       {page === 'people' && <People people={people} projects={projects} onOpenProject={setSelectedId} onSavePerson={savePerson} />}

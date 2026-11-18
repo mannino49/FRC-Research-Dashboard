@@ -1,7 +1,8 @@
 import React from 'react';
+import MeetingPrep from './MeetingPrep.jsx';
 import { STATUSES, fmtDate, personById, typeWord } from '../utils.js';
 
-export default function Home({ people, projects, query, onSearch, onOpen, onPatch }) {
+export default function Home({ people, projects, connected, query, onSearch, onOpen, onPatch }) {
   const [expanded, setExpanded] = React.useState(null);
   const focusAfterMove = React.useRef(null);
   React.useLayoutEffect(() => {
@@ -26,6 +27,7 @@ export default function Home({ people, projects, query, onSearch, onOpen, onPatc
           onChange={(event) => onSearch(event.target.value)} />
         <span role="status">{needle ? `${visible.length} of ` : ''}{projects.length} {projects.length === 1 ? 'project' : 'projects'}</span>
       </div>
+      <MeetingPrep projects={projects} people={people} connected={connected} onOpen={onOpen} />
       {visible.length > 0 && <div className="ledger-owner-heading">Whose turn</div>}
       {STATUSES.map((status) => {
         const items = visible.filter((p) => p.status === status);

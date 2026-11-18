@@ -206,6 +206,23 @@ a { color: inherit; text-decoration: none; }
   font: inherit;
 }
 .ledger-tools input { width: min(220px, 60%); }
+.meeting-prep { margin: 2px 0 12px; }
+.meeting-prep summary { cursor: pointer; width: fit-content; color: var(--ink-2); }
+.meeting-body { max-width: 740px; margin-top: 12px; padding: 16px; border: 1px solid var(--rule); background: var(--paper-2); }
+.meeting-body h2 { margin: 0 0 8px; font-size: var(--fs-xl); font-weight: 400; }
+.meeting-body p { margin: 4px 0 12px; overflow-wrap: anywhere; }
+.meeting-body label { display: grid; gap: 4px; }
+.meeting-body textarea, .meeting-body input {
+  padding: 8px; font: inherit; background: var(--paper); color: var(--ink); border: 1px solid var(--rule);
+}
+.meeting-body input { width: fit-content; }
+.meeting-body textarea { width: 100%; resize: vertical; line-height: 1.5; }
+.meeting-sources { margin: 12px 0; }
+.meeting-sources p, .meeting-body [role="status"] { color: var(--ink-2); font-size: var(--fs-sm); }
+.meeting-body [role="status"]:not(:empty) { margin-top: 8px; }
+.meeting-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.meeting-actions button { padding: 6px 12px; border: 1px solid var(--rule); color: var(--ink); }
+.meeting-actions button:disabled { opacity: .55; }
 .ledger-tools span, .ledger-group h2 span, .ledger-owner-heading {
   color: var(--ink-2);
   font: 400 var(--fs-sm)/1.4 var(--mono);

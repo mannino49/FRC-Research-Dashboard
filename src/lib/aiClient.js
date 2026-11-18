@@ -43,6 +43,19 @@ export async function previewProjectUpdate(sentence, current, people, author) {
   return result.changes;
 }
 
+export async function draftMeetingBrief(papers, since) {
+  const token = await getSupabaseAccessToken();
+  if (!token) throw new Error('Sign in to generate a meeting brief.');
+  const response = await fetch('/api/ai', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: 'draft_meeting_brief', papers, since }),
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(result?.items)) throw new Error(result?.error || 'Could not generate a meeting brief. Try again.');
+  return result.items;
+}
+
 export async function scoutProjectCollaborators(project, people) {
   const context = buildProjectContext(project, people);
   const prompt = projectContextToPrompt(context);

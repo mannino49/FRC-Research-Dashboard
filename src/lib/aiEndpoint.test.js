@@ -37,7 +37,11 @@ describe('project update preview', () => {
     vi.resetModules();
   });
 
-  async function preview(fetchMock, token = 'session') {
+  async function preview(fetchMock, token = 'session', body = {
+    action: 'preview_project_update', sentence: 'Steven will review Friday.', author: 'MM',
+    current: { status: 'Drafting / Idea', turn: 'MM', note: '' },
+    people: [{ id: 'MM', name: 'Michael' }, { id: 'SK', name: 'Steven' }],
+  }) {
     vi.stubEnv('OPENAI_API_KEY', 'test-key');
     vi.stubEnv('VITE_SUPABASE_URL', 'https://db.example.test');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-public');
@@ -47,11 +51,7 @@ describe('project update preview', () => {
     return handler(new Request('https://example.test/api/ai', {
       method: 'POST',
       headers: token ? { authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify({
-        action: 'preview_project_update', sentence: 'Steven will review Friday.', author: 'MM',
-        current: { status: 'Drafting / Idea', turn: 'MM', note: '' },
-        people: [{ id: 'MM', name: 'Michael' }, { id: 'SK', name: 'Steven' }],
-      }),
+      body: JSON.stringify(body),
     }));
   }
 
@@ -59,6 +59,19 @@ describe('project update preview', () => {
     const fetchMock = vi.fn();
     expect((await preview(fetchMock, '')).status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('requires a session for meeting briefs and returns only source-checked items', async () => {
+    const item = { projectId: 'p', kind: 'decision_needed', question: 'Which venue?', preparation: 'Compare the venues.',
+      sourceIndex: 0, quote: 'Choose a venue.' };
+    const body = { action: 'draft_meeting_brief', papers: [{ id: 'p', title: 'A paper', sources: [{ text: item.quote }] }] };
+    const mock = vi.fn();
+    expect((await preview(mock, '', body)).status).toBe(401);
+    expect(mock).not.toHaveBeenCalled();
+    mock.mockResolvedValueOnce(Response.json({ id: 'user' }))
+      .mockResolvedValueOnce(Response.json({ output_text: JSON.stringify({ items: [item] }) }));
+    expect(await (await preview(mock, 'session', body)).json()).toEqual({ items: [item] });
+    expect(mock).toHaveBeenCalledTimes(2);
   });
 
   it('returns proposed edits without writing a project, history entry, or AI draft', async () => {

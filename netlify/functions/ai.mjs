@@ -1,4 +1,5 @@
 import { updateSchema, validateSuggestedUpdate } from '../../src/lib/projectUpdate.js';
+import { checkedMeetingItems, meetingInstructions, meetingSchema } from '../../src/lib/meetingBrief.js';
 import { AI_RESPONSE_SCHEMA, formatAiStructuredOutput, getAiAction } from '../../src/lib/aiActions.js';
 
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5.4-mini';
@@ -78,11 +79,29 @@ export default async (req) => {
   }
 
   const isUpdate = body?.action === 'preview_project_update';
+  const isMeeting = body?.action === 'draft_meeting_brief';
   const action = getAiAction(body?.action);
-  if (!isUpdate && !action) return json({ error: 'unsupported action' }, { status: 400 });
+  if (!isUpdate && !isMeeting && !action) return json({ error: 'unsupported action' }, { status: 400 });
 
   let instructions, prompt;
-  if (isUpdate) {
+  let schema = AI_RESPONSE_SCHEMA;
+  let schemaName = 'project_ai_output';
+  if (isMeeting) {
+    const { papers, since } = body;
+    if (!Array.isArray(papers) || !papers.length || !papers.every((p) =>
+      typeof p?.id === 'string' && typeof p.title === 'string' && Array.isArray(p.sources) &&
+      p.sources.length && p.sources.every((s) => typeof s?.text === 'string')) ||
+      (since && !/^\d{4}-\d{2}-\d{2}$/.test(since))) {
+      return json({ error: 'Missing paper records or invalid meeting date.' }, { status: 400 });
+    }
+    prompt = JSON.stringify({ papers, lastMeetingDate: since || null });
+    if (prompt.length > 300000) return json({ error: 'The paper records exceed the meeting brief size limit.' }, { status: 413 });
+    instructions = meetingInstructions;
+    schema = meetingSchema;
+    schemaName = 'meeting_brief';
+  } else if (isUpdate) {
+    schema = updateSchema;
+    schemaName = 'project_update_preview';
     const { sentence, people, current, author } = body;
     if (typeof sentence !== 'string' || !sentence.trim() || sentence.length > 2000 ||
         !current || !Array.isArray(people) || !people.length ||
@@ -119,6 +138,7 @@ export default async (req) => {
     },
     body: JSON.stringify({
       model: MODEL,
+      ...(isMeeting && { store: false }),
       input: [
         { role: 'system', content: instructions },
         { role: 'user', content: prompt },
@@ -126,9 +146,9 @@ export default async (req) => {
       text: {
         format: {
           type: 'json_schema',
-          name: isUpdate ? 'project_update_preview' : 'project_ai_output',
+          name: schemaName,
           strict: true,
-          schema: isUpdate ? updateSchema : AI_RESPONSE_SCHEMA,
+          schema,
         },
       },
       max_output_tokens: 1600,
@@ -141,6 +161,12 @@ export default async (req) => {
   }
 
   const structured = structuredOutput(data);
+
+  if (isMeeting) {
+    const items = checkedMeetingItems(structured, body.papers);
+    if (!items) return json({ error: 'The brief could not be verified against the paper records. Try generating it again.' }, { status: 502 });
+    return json({ items });
+  }
 
   if (isUpdate) {
     const changes = validateSuggestedUpdate(structured, body.people);
