@@ -6,7 +6,7 @@ import {
   driveProjectSuggestion,
   projectSuggestionsFromDrive,
 } from '../lib/driveIntelligence.js';
-import { TYPES, classNames, personById, typeMark, typeWord } from '../utils.js';
+import { INITIAL_STATUS, TYPES, classNames, personById, typeMark, typeWord } from '../utils.js';
 
 export function People({ people, projects, onOpenProject, onSavePerson }) {
   const [editingId, setEditingId] = React.useState(null);
@@ -228,7 +228,7 @@ export function NewProject({ people, onCreate, onCancel }) {
       domain: domain.trim(),
       tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean),
       updated: today,
-      status: 'Idea',
+      status: INITIAL_STATUS,
       note: note.trim(),
       notes: notes.trim(),
       waitingOn: null,

@@ -52,7 +52,7 @@ describe('drive intelligence', () => {
   it('suggests explicit updates for an existing project without mutating it', () => {
     const project = {
       title: 'Flow Paper',
-      status: 'Idea',
+      status: 'Drafting / Idea',
       note: '',
       links: [],
     };
@@ -70,7 +70,7 @@ describe('drive intelligence', () => {
     const project = aiProjectSuggestionToProject({
       title: 'Metastability Paper',
       type: 'paper',
-      status: 'Drafting',
+      status: 'Drafting / Idea',
       venue: 'unplaced',
       domain: 'flow',
       tags: ['metastability'],
@@ -91,17 +91,29 @@ describe('drive intelligence', () => {
   it('turns approved AI update suggestions into narrow patches', () => {
     const patch = aiUpdateSuggestionToPatch({ notes: 'Existing note.' }, {
       patch: {
-        status: 'Drafting',
-        note: 'Write the next paragraph.',
-        notesAppend: 'AI found a newer draft in Drive.',
+        status: 'Published',
+        note: 'Share the published article.',
+        notesAppend: 'The journal posted the article.',
         domain: 'consciousness',
         tags: ['draft'],
       },
     });
 
-    expect(patch.status).toBe('Drafting');
-    expect(patch.note).toBe('Write the next paragraph.');
+    expect(patch.status).toBe('Published');
+    expect(patch.note).toBe('Share the published article.');
     expect(patch.notes).toContain('Existing note.');
-    expect(patch.notes).toContain('AI found a newer draft in Drive.');
+    expect(patch.notes).toContain('The journal posted the article.');
+  });
+
+  it('starts new drafts and unversioned ideas in the same group', () => {
+    for (const versionGuess of ['v1', '']) {
+      expect(driveProjectSuggestion({ ...docs[0], versionGuess }).status).toBe('Drafting / Idea');
+    }
+    expect(aiProjectSuggestionToProject({}).status).toBe('Drafting / Idea');
+  });
+
+  it('keeps a published project in its group when Drive finds an older manuscript', () => {
+    const suggestions = projectUpdateSuggestions({ status: 'Published' }, docs);
+    expect(suggestions.every(({ patch }) => !patch.status)).toBe(true);
   });
 });

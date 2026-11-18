@@ -1,4 +1,5 @@
 import { json, requireSupabaseUser } from '../shared/drive-utils.mjs';
+import { STATUSES } from '../../src/utils.js';
 
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5.4-mini';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -16,7 +17,7 @@ const DRIVE_SUGGESTION_SCHEMA = {
         properties: {
           title: { type: 'string' },
           type: { type: 'string', enum: ['paper', 'collaboration', 'applied'] },
-          status: { type: 'string', enum: ['Idea', 'Drafting', 'In review', 'Waiting', 'Submitted'] },
+          status: { type: 'string', enum: STATUSES },
           venue: { type: 'string' },
           domain: { type: 'string' },
           tags: { type: 'array', maxItems: 6, items: { type: 'string' } },
@@ -43,7 +44,7 @@ const DRIVE_SUGGESTION_SCHEMA = {
             type: 'object',
             additionalProperties: false,
             properties: {
-              status: { type: 'string', enum: ['Idea', 'Drafting', 'In review', 'Waiting', 'Submitted', ''] },
+              status: { type: 'string', enum: [...STATUSES, ''] },
               note: { type: 'string' },
               notesAppend: { type: 'string' },
               domain: { type: 'string' },

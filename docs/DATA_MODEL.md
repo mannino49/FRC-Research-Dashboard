@@ -81,7 +81,7 @@ Projects are stored as an array.
 - `id`: unique project ID.
 - `title`: project title.
 - `type`: one of `paper`, `collaboration`, or `applied`.
-- `status`: one of `Idea`, `Drafting`, `In review`, `Waiting`, or `Submitted`.
+- `status` groups projects under `Drafting / Idea`, `In review`, `Waiting`, `Submitted`, or `Published`.
 - `turn`: person ID for the person currently responsible for movement.
 - `venue`: publication venue, event, internal destination, or `unplaced`.
 - `venueUrl`: optional URL for the venue, journal, publication, or destination.

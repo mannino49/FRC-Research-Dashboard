@@ -49,7 +49,7 @@ describe('project update preview', () => {
       headers: token ? { authorization: `Bearer ${token}` } : {},
       body: JSON.stringify({
         action: 'preview_project_update', sentence: 'Steven will review Friday.', author: 'MM',
-        current: { status: 'Drafting', turn: 'MM', note: '' },
+        current: { status: 'Drafting / Idea', turn: 'MM', note: '' },
         people: [{ id: 'MM', name: 'Michael' }, { id: 'SK', name: 'Steven' }],
       }),
     }));

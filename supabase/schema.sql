@@ -19,7 +19,7 @@ create table if not exists public.projects (
   id text primary key,
   title text not null,
   type text not null check (type in ('paper', 'collaboration', 'applied')),
-  status text not null check (status in ('Idea', 'Drafting', 'In review', 'Waiting', 'Submitted')),
+  status text not null check (status in ('Drafting / Idea', 'In review', 'Waiting', 'Submitted', 'Published')),
   turn_person_id text not null references public.people(id),
   venue text not null default 'unplaced',
   venue_url text,

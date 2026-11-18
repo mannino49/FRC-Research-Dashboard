@@ -1,4 +1,5 @@
-export const STATUSES = ['Idea', 'Drafting', 'In review', 'Waiting', 'Submitted'];
+export const INITIAL_STATUS = 'Drafting / Idea';
+export const STATUSES = [INITIAL_STATUS, 'In review', 'Waiting', 'Submitted', 'Published'];
 export const TYPES = ['paper', 'collaboration', 'applied'];
 
 export function classNames(...xs) {

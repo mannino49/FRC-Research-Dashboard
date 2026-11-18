@@ -1,3 +1,5 @@
+import { INITIAL_STATUS } from '../utils.js';
+
 function normalize(value) {
   return String(value || '').trim();
 }
@@ -14,8 +16,8 @@ function cleanTitleFromName(name) {
 function statusFromVersion(versionGuess = '') {
   const lower = versionGuess.toLowerCase();
   if (lower.includes('submitted') || lower.includes('proof')) return 'Submitted';
-  if (lower.includes('draft') || lower.includes('version') || /\bv\d+/i.test(lower)) return 'Drafting';
-  return 'Idea';
+  if (lower.includes('draft') || lower.includes('version') || /\bv\d+/i.test(lower)) return INITIAL_STATUS;
+  return null;
 }
 
 function linkExists(project, url) {
@@ -56,7 +58,7 @@ export function driveProjectSuggestion(doc) {
     domain: '',
     tags: [],
     updated: today,
-    status: statusFromVersion(doc.versionGuess),
+    status: statusFromVersion(doc.versionGuess) || INITIAL_STATUS,
     note: 'Review synced Drive file and confirm project metadata.',
     notes,
     waitingOn: null,
@@ -95,7 +97,7 @@ export function aiProjectSuggestionToProject(suggestion, documents = []) {
     domain: normalize(suggestion.domain),
     tags: suggestion.tags || [],
     updated: today,
-    status: suggestion.status || 'Idea',
+    status: suggestion.status || INITIAL_STATUS,
     note: normalize(suggestion.nextAction) || 'Review AI-generated Drive project suggestion.',
     notes: [
       'Created from an approved AI Drive suggestion.',
@@ -176,7 +178,7 @@ export function projectUpdateSuggestions(project, documents = []) {
   }
 
   const inferredStatus = statusFromVersion(latest.versionGuess);
-  if (inferredStatus !== 'Idea' && project.status !== inferredStatus) {
+  if (inferredStatus && project.status !== 'Published' && project.status !== inferredStatus) {
     suggestions.push({
       id: `status-${latest.fileId}`,
       label: `Mark ${inferredStatus.toLowerCase()}`,

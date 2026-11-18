@@ -1,3 +1,5 @@
+import { INITIAL_STATUS } from '../utils.js';
+
 export const PEOPLE = {
   MM: { initials: 'MM', name: 'Michael Mannino', kind: 'internal' },
   SK: { initials: 'SK', name: 'Steven Kotler', kind: 'internal' },
@@ -59,7 +61,7 @@ export const PROJECTS = [
     turn: 'MM',
     venue: 'unplaced',
     updated: '2026-04-18',
-    status: 'Drafting',
+    status: INITIAL_STATUS,
     note: '',
     waitingOn: null,
     coauthors: [],
@@ -129,7 +131,7 @@ export const PROJECTS = [
     turn: 'MM',
     venue: 'AI Journal',
     updated: '2026-04-18',
-    status: 'Drafting',
+    status: INITIAL_STATUS,
     note: 'Michael to go over SK comments',
     waitingOn: null,
     coauthors: [],
@@ -143,7 +145,7 @@ export const PROJECTS = [
     turn: 'MM',
     venue: 'unplaced',
     updated: '2026-04-18',
-    status: 'Drafting',
+    status: INITIAL_STATUS,
     note: '',
     waitingOn: null,
     coauthors: [],

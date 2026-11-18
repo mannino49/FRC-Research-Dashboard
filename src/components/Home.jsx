@@ -1,8 +1,6 @@
 import React from 'react';
 import { STATUSES, fmtDate, personById, typeWord } from '../utils.js';
 
-const statusOrder = ['Drafting', 'In review', 'Waiting', 'Submitted', 'Idea'];
-
 export default function Home({ people, projects, query, onSearch, onOpen, onPatch }) {
   const [expanded, setExpanded] = React.useState(null);
   const focusAfterMove = React.useRef(null);
@@ -29,9 +27,9 @@ export default function Home({ people, projects, query, onSearch, onOpen, onPatc
         <span role="status">{needle ? `${visible.length} of ` : ''}{projects.length} {projects.length === 1 ? 'project' : 'projects'}</span>
       </div>
       {visible.length > 0 && <div className="ledger-owner-heading">Whose turn</div>}
-      {statusOrder.map((status) => {
+      {STATUSES.map((status) => {
         const items = visible.filter((p) => p.status === status);
-        if (!items.length) return null;
+        if (!items.length && (needle || !projects.length)) return null;
         return (
           <section key={status} className="ledger-group" aria-label={status}>
             <h2>{status} <span>{items.length}</span></h2>

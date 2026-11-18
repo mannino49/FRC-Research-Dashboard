@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { reviewedChanges, validateSuggestedUpdate } from './projectUpdate.js';
 
 const people = [{ id: 'MM' }, { id: 'SK' }];
-const before = { status: 'Drafting', turn: 'MM', note: 'Revise introduction.' };
+const before = { status: 'Drafting / Idea', turn: 'MM', note: 'Revise introduction.' };
 
 describe('reviewed project updates', () => {
   it('sends only reviewed differences and their original values', () => {
@@ -16,6 +16,8 @@ describe('reviewed project updates', () => {
 
   it('allows a history-only suggestion and limits proposals to supported fields', () => {
     expect(validateSuggestedUpdate({ turn: null, status: null, note: null }, people)).toEqual({});
+    expect(validateSuggestedUpdate({ turn: null, status: 'Published', note: null }, people))
+      .toEqual({ status: 'Published' });
     expect(validateSuggestedUpdate({ turn: 'SK', status: null, note: 'Review Friday.', title: 'Ignore me' }, people))
       .toEqual({ turn: 'SK', note: 'Review Friday.' });
   });
