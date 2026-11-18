@@ -414,6 +414,28 @@ export async function appendHistoryRecord(projectId, entry) {
   };
 }
 
+export async function saveReviewedUpdate(projectId, { id, author, sentence, expected, changes }) {
+  if (!isSupabaseConfigured) {
+    const now = new Date().toISOString();
+    const date = now.slice(0, 10);
+    return {
+      fields: { ...changes, updated: date, updatedAt: now },
+      entry: { id, who: author, d: date, t: sentence },
+    };
+  }
+
+  const { data, error } = await supabase.rpc('save_reviewed_project_update', {
+    p_project_id: projectId,
+    p_entry_id: id,
+    p_author: author,
+    p_sentence: sentence,
+    p_expected: expected,
+    p_changes: changes,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function createAiOutputRecord(projectId, output) {
   if (!isSupabaseConfigured) return;
 

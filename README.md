@@ -12,6 +12,12 @@ The current app is a Vite/React dashboard backed by Supabase. Browser-side seed 
 - Supabase is the canonical persistence layer for people, projects, links, and history.
 - `netlify.toml` builds the Vite app and publishes `dist`.
 
+## Project updates
+
+Projects are grouped by status. Expand a project and choose **Open project** to get a handoff brief or add an update. **Preview changes** suggests edits to the status, turn, and next action. Review or edit the fields, then use **Save update** to commit them with the original sentence in history. If AI is unavailable, the same review supports manual edits.
+
+Connected saves require `supabase/migrations/20261118000000_save_reviewed_project_update.sql`. The database function applies approved changes and the history entry in one transaction. Seed-mode edits last for the current session.
+
 ## Documentation
 
 - [Project overview](docs/PROJECT_OVERVIEW.md)

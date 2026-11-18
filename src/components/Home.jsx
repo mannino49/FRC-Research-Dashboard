@@ -1,211 +1,76 @@
 import React from 'react';
-import { RESEARCH_DRIVE_URL } from '../constants.js';
-import { ExternalLinkIcon, FolderIcon } from './Icons.jsx';
-import { STATUSES, classNames, daysAgo, personById, typeMark, typeWord } from '../utils.js';
+import { STATUSES, fmtDate, personById, typeWord } from '../utils.js';
 
-export default function Home({ people, projects, onOpen, grouping, onPatch, onHistory }) {
-  const [openMenu, setOpenMenu] = React.useState(null);
+const statusOrder = ['Drafting', 'In review', 'Waiting', 'Submitted', 'Idea'];
 
-  const sorted = React.useMemo(() => {
-    const me = 'MM';
-    return [...projects].sort((a, b) => {
-      const aMine = a.turn === me ? 0 : a.turn === 'SK' ? 1 : 2;
-      const bMine = b.turn === me ? 0 : b.turn === 'SK' ? 1 : 2;
-      if (aMine !== bMine) return aMine - bMine;
-      return b.updated.localeCompare(a.updated);
-    });
+export default function Home({ people, projects, query, onSearch, onOpen, onPatch }) {
+  const [expanded, setExpanded] = React.useState(null);
+  const focusAfterMove = React.useRef(null);
+  React.useLayoutEffect(() => {
+    if (focusAfterMove.current) {
+      (document.getElementById(`ledger-row-${focusAfterMove.current}`) || document.getElementById('ledger-search'))?.focus();
+      focusAfterMove.current = null;
+    }
   }, [projects]);
-
-  const groups = React.useMemo(() => {
-    if (grouping === 'flat') return [{ key: 'all', title: 'All projects', items: sorted, numeral: 'I' }];
-    if (grouping === 'turn') {
-      const buckets = { mine: [], partner: [], external: [] };
-      for (const p of sorted) {
-        if (p.turn === 'MM') buckets.mine.push(p);
-        else if (p.turn === 'SK') buckets.partner.push(p);
-        else buckets.external.push(p);
-      }
-      return [
-        { key: 'mine', title: 'Your turn', items: buckets.mine, numeral: 'I' },
-        { key: 'partner', title: 'Steven’s turn', items: buckets.partner, numeral: 'II' },
-        { key: 'external', title: 'Waiting on collaborators', items: buckets.external, numeral: 'III' },
-      ].filter((g) => g.items.length > 0);
-    }
-    if (grouping === 'status') {
-      const order = ['Drafting', 'In review', 'Waiting', 'Submitted', 'Idea'];
-      const numerals = ['I', 'II', 'III', 'IV', 'V'];
-      return order
-        .map((s, i) => ({ key: s, title: s, items: sorted.filter((p) => p.status === s), numeral: numerals[i] }))
-        .filter((g) => g.items.length > 0);
-    }
-    if (grouping === 'type') {
-      const labels = { paper: 'Papers', collaboration: 'Collaborations', applied: 'Applied projects' };
-      const numerals = { paper: 'I', collaboration: 'II', applied: 'III' };
-      return ['paper', 'collaboration', 'applied']
-        .map((t) => ({ key: t, title: labels[t], items: sorted.filter((p) => p.type === t), numeral: numerals[t] }))
-        .filter((g) => g.items.length > 0);
-    }
-    return [];
-  }, [sorted, grouping]);
-
-  React.useEffect(() => {
-    function onDoc() {
-      setOpenMenu(null);
-    }
-    document.addEventListener('click', onDoc);
-    return () => document.removeEventListener('click', onDoc);
-  }, []);
-
-  const mineCount = projects.filter((p) => p.turn === 'MM').length;
-  const partnerCount = projects.filter((p) => p.turn === 'SK').length;
-  const extCount = projects.filter((p) => personById(people, p.turn)?.kind === 'external').length;
-  const inReview = projects.filter((p) => p.status === 'In review').length;
-  let runningIdx = 0;
+  const needle = query.trim().toLowerCase();
+  const visible = projects.filter((p) => {
+    if (!needle) return true;
+    const names = [p.turn, p.waitingOn, ...p.coauthors].filter(Boolean)
+      .map((id) => [id, personById(people, id)?.name].join(' '));
+    return [p.title, p.status, p.type, p.note, p.notes, p.venue, p.domain, ...(p.tags || []), ...names]
+      .filter(Boolean).join(' ').toLowerCase().includes(needle);
+  }).sort((a, b) => b.updated.localeCompare(a.updated));
 
   return (
-    <>
-      <a className="drive-card" href={RESEARCH_DRIVE_URL} target="_blank" rel="noopener noreferrer">
-        <span className="drive-card-icon"><FolderIcon /></span>
-        <span className="drive-card-copy">
-          <span className="drive-card-title">Research Drive</span>
-          <span className="drive-card-sub">All papers, drafts, PDFs, and working project files in Google Drive</span>
-        </span>
-        <span className="drive-card-link"><ExternalLinkIcon /></span>
-      </a>
-
-      <section className="summary">
-        <div className="cell">
-          <div className="n old" style={{ color: 'var(--accent)' }}>{mineCount}</div>
-          <div className="lbl">Your turn</div>
-          <div className="sub">to move these forward</div>
-        </div>
-        <div className="cell">
-          <div className="n old">{partnerCount}</div>
-          <div className="lbl">Steven&rsquo;s turn</div>
-          <div className="sub">with Steven</div>
-        </div>
-        <div className="cell">
-          <div className="n old">{extCount}</div>
-          <div className="lbl">External</div>
-          <div className="sub">waiting on co-authors</div>
-        </div>
-        <div className="cell">
-          <div className="n old">{inReview}<small>in review</small></div>
-          <div className="lbl">Active, total · {projects.length}</div>
-          <div className="sub">across papers, collabs, applied</div>
-        </div>
-      </section>
-
-      {projects.length === 0 && (
-        <div className="empty-state">
-          <div className="sc">No matching projects</div>
-          <p>Adjust the search or filters to widen the ledger.</p>
-        </div>
-      )}
-
-      {groups.map((g) => (
-        <section key={g.key}>
-          <div className="section-head">
-            <span className="numeral">{g.numeral}.</span>
-            <span className="title">{g.title}</span>
-            <span className="count">{g.items.length} {g.items.length === 1 ? 'project' : 'projects'}</span>
-          </div>
-          <div className="list">
-            {g.items.map((p) => {
-              runningIdx += 1;
-              const mine = p.turn === 'MM';
-              const turnPerson = personById(people, p.turn);
-              return (
-                <div
-                  key={p.id}
-                  className={classNames('row', mine && 'mine')}
-                  onClick={() => onOpen(p.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onOpen(p.id);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <span className="idx">{runningIdx}</span>
-                  <span
-                    className="turn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenMenu(openMenu && openMenu.projectId === p.id && openMenu.kind === 'turn' ? null : { projectId: p.id, kind: 'turn' });
-                    }}
-                  >
-                    <span className="arrow">→</span>
-                    <span className="who mono">{turnPerson ? turnPerson.initials : p.turn}</span>
-                    {openMenu && openMenu.projectId === p.id && openMenu.kind === 'turn' && (
-                      <div className="menu" style={{ top: 28, left: 0 }} onClick={(e) => e.stopPropagation()}>
-                        {['MM', 'SK', ...p.coauthors].map((id) => (
-                          <button
-                            key={id}
-                            className={p.turn === id ? 'on' : ''}
-                            onClick={() => {
-                              const today = new Date().toISOString().slice(0, 10);
-                              onPatch(p.id, { turn: id, updated: today });
-                              onHistory(p.id, { d: today, who: 'MM', t: `Passed turn to ${personById(people, id)?.name || id}.` });
-                              setOpenMenu(null);
-                            }}
-                          >
-                            {personById(people, id)?.name || id}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </span>
-                  <span className="title-cell">
-                    <span className="t">{p.title}</span>
-                    <span className="meta">
-                      <span>{typeMark(p.type)} {typeWord(p.type)}</span>
-                      {p.coauthors.filter((id) => personById(people, id)?.kind === 'external').length > 0 && (
-                        <>
-                          <span className="dot">·</span>
-                          <span className="co">with {p.coauthors.filter((id) => personById(people, id)?.kind === 'external').map((id) => personById(people, id)?.name.split(' ').slice(-1)[0]).join(', ')}</span>
-                        </>
-                      )}
-                      {p.waitingOn && (
-                        <>
-                          <span className="dot">·</span>
-                          <span className="co" style={{ color: 'var(--status-waiting)' }}>waiting on {personById(people, p.waitingOn)?.name.split(' ').slice(-1)[0]}</span>
-                        </>
-                      )}
-                    </span>
-                  </span>
-                  <span className="venue">
-                    {p.venueUrl ? (
-                      <a href={p.venueUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{p.venue}</a>
-                    ) : (
-                      p.venue
-                    )}
-                  </span>
-                  <span
-                    className="status"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenMenu(openMenu && openMenu.projectId === p.id && openMenu.kind === 'status' ? null : { projectId: p.id, kind: 'status' });
-                    }}
-                  >
-                    <span className="tick">—</span>{p.status}
-                    {openMenu && openMenu.projectId === p.id && openMenu.kind === 'status' && (
-                      <div className="menu" style={{ top: 24, left: 0 }} onClick={(e) => e.stopPropagation()}>
-                        {STATUSES.map((s) => (
-                          <button key={s} className={p.status === s ? 'on' : ''} onClick={() => { onPatch(p.id, { status: s }); setOpenMenu(null); }}>{s}</button>
-                        ))}
-                      </div>
-                    )}
-                  </span>
-                  <span className="date">{daysAgo(p.updated)}</span>
+    <main className="project-ledger">
+      <div className="ledger-tools">
+        <input id="ledger-search" type="search" aria-label="Search projects" placeholder="Search projects" value={query}
+          onChange={(event) => onSearch(event.target.value)} />
+        <span role="status">{needle ? `${visible.length} of ` : ''}{projects.length} {projects.length === 1 ? 'project' : 'projects'}</span>
+      </div>
+      {visible.length > 0 && <div className="ledger-owner-heading">Whose turn</div>}
+      {statusOrder.map((status) => {
+        const items = visible.filter((p) => p.status === status);
+        if (!items.length) return null;
+        return (
+          <section key={status} className="ledger-group" aria-label={status}>
+            <h2>{status} <span>{items.length}</span></h2>
+            <div>
+              {items.map((p) => (
+                <div className="ledger-item" key={p.id}>
+                  <button id={`ledger-row-${p.id}`} className="ledger-project" aria-expanded={expanded === p.id}
+                    onClick={() => setExpanded(expanded === p.id ? null : p.id)}>
+                    <span className="ledger-title">{p.title}</span>
+                    <span className="ledger-owner">{personById(people, p.turn)?.name || p.turn}</span>
+                    {p.note && <span className="ledger-next">{p.note}</span>}
+                  </button>
+                  {expanded === p.id && (
+                    <div className="ledger-details">
+                      <dl>
+                        <dt>Status</dt>
+                        <dd>
+                          <select aria-label={`Status for ${p.title}`} value={p.status} onChange={(e) => {
+                            focusAfterMove.current = p.id;
+                            onPatch(p.id, { status: e.target.value, updated: new Date().toISOString().slice(0, 10) });
+                          }}>
+                            {STATUSES.map((value) => <option key={value}>{value}</option>)}
+                          </select>
+                        </dd>
+                        <dt>Type</dt><dd>{typeWord(p.type)}</dd>
+                        {p.coauthors.length > 0 && <><dt>Co-authors</dt><dd>{p.coauthors.map((id) => people[id]?.name || id).join(', ')}</dd></>}
+                        {p.venue && p.venue !== 'unplaced' && <><dt>Venue</dt><dd>{p.venueUrl ? <a href={p.venueUrl} target="_blank" rel="noreferrer">{p.venue}</a> : p.venue}</dd></>}
+                        <dt>Updated</dt><dd>{fmtDate(p.updated)}, {p.updated.slice(0, 4)}</dd>
+                      </dl>
+                      <button className="ledger-open" onClick={() => onOpen(p.id)}>Open project</button>
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      ))}
-    </>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+      {!visible.length && <p className="empty-state">{needle ? 'No projects match your search.' : 'No projects yet.'}</p>}
+    </main>
   );
 }

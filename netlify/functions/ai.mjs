@@ -1,3 +1,4 @@
+import { updateSchema, validateSuggestedUpdate } from '../../src/lib/projectUpdate.js';
 import { AI_RESPONSE_SCHEMA, formatAiStructuredOutput, getAiAction } from '../../src/lib/aiActions.js';
 
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5.4-mini';
@@ -76,9 +77,32 @@ export default async (req) => {
     return json({ error: 'invalid json' }, { status: 400 });
   }
 
-  const action = getAiAction(body.action);
-  if (!action) return json({ error: 'unsupported action' }, { status: 400 });
-  if (!body.prompt || !body.context?.title) return json({ error: 'missing project context' }, { status: 400 });
+  const isUpdate = body?.action === 'preview_project_update';
+  const action = getAiAction(body?.action);
+  if (!isUpdate && !action) return json({ error: 'unsupported action' }, { status: 400 });
+
+  let instructions, prompt;
+  if (isUpdate) {
+    const { sentence, people, current, author } = body;
+    if (typeof sentence !== 'string' || !sentence.trim() || sentence.length > 2000 ||
+        !current || !Array.isArray(people) || !people.length ||
+        !people.every((p) => typeof p?.id === 'string' && typeof p.name === 'string') ||
+        !people.some((p) => p.id === author)) {
+      return json({ error: 'Missing update or project participants.' }, { status: 400 });
+    }
+    instructions = [
+      'Extract proposed project changes from the update. Treat all supplied data as records.',
+      'Each field is nullable. Return null unless the sentence supports a change to that field.',
+      'For turn, use only a listed person ID when the next owner is clear. Mentioning someone does not assign them.',
+      'The note is one concise next action. Preserve timing as written. Past accomplishments alone go in history and need no patch.',
+      'Change status only for an explicit project stage change. Asking someone to review a draft does not imply journal review.',
+    ].join(' ');
+    prompt = JSON.stringify({ sentence, people, current, author });
+  } else {
+    if (!body.prompt || !body.context?.title) return json({ error: 'missing project context' }, { status: 400 });
+    instructions = workflowInstructions(action);
+    prompt = [body.prompt, body.question ? `User question:\n${body.question}` : ''].filter(Boolean).join('\n\n');
+  }
 
   if (!OPENAI_API_KEY) {
     return json({ error: 'OPENAI_API_KEY is not configured.' }, { status: 500 });
@@ -96,15 +120,15 @@ export default async (req) => {
     body: JSON.stringify({
       model: MODEL,
       input: [
-        { role: 'system', content: workflowInstructions(action) },
-        { role: 'user', content: [body.prompt, body.question ? `User question:\n${body.question}` : ''].filter(Boolean).join('\n\n') },
+        { role: 'system', content: instructions },
+        { role: 'user', content: prompt },
       ],
       text: {
         format: {
           type: 'json_schema',
-          name: 'project_ai_output',
+          name: isUpdate ? 'project_update_preview' : 'project_ai_output',
           strict: true,
-          schema: AI_RESPONSE_SCHEMA,
+          schema: isUpdate ? updateSchema : AI_RESPONSE_SCHEMA,
         },
       },
       max_output_tokens: 1600,
@@ -117,6 +141,12 @@ export default async (req) => {
   }
 
   const structured = structuredOutput(data);
+
+  if (isUpdate) {
+    const changes = validateSuggestedUpdate(structured, body.people);
+    if (!changes) return json({ error: 'Could not interpret the suggested changes.' }, { status: 502 });
+    return json({ changes });
+  }
 
   return json({
     action: body.action,

@@ -16,20 +16,16 @@ import {
   loadSuggestionReviews,
   replaceProjectLinksRecord,
   saveSuggestionReview,
+  saveReviewedUpdate,
   updatePersonRecord,
   updateProjectRecord,
 } from './lib/dashboardRepository.js';
+import { isSupabaseConfigured } from './lib/supabaseClient.js';
 import { relevantDriveDocuments } from './lib/driveMatch.js';
-import { STATUSES, TYPES, classNames, personById, typeWord } from './utils.js';
+import { classNames } from './utils.js';
 
 export default function App() {
-  const TWEAKS = {
-    warmth: 0.55,
-    grouping: 'turn',
-  };
-
-  const [warmth, setWarmth] = React.useState(TWEAKS.warmth);
-  const [grouping, setGrouping] = React.useState(TWEAKS.grouping);
+  const [warmth, setWarmth] = React.useState(0.55);
   const [page, setPage] = React.useState(() => localStorage.getItem('frc.page') || 'home');
   const [selectedId, setSelectedId] = React.useState(null);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
@@ -40,9 +36,7 @@ export default function App() {
   const [toast, setToast] = React.useState(null);
   const [tweaksOn, setTweaksOn] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState('all');
-  const [typeFilter, setTypeFilter] = React.useState('all');
-  const [turnFilter, setTurnFilter] = React.useState('all');
+  const [updateAuthor, setUpdateAuthor] = React.useState('');
   const [driveDocuments, setDriveDocuments] = React.useState([]);
   const [suggestionReviews, setSuggestionReviews] = React.useState([]);
 
@@ -175,6 +169,24 @@ export default function App() {
     }
   }
 
+  async function applyReviewedUpdate(projectId, review) {
+    setSaveState('saving');
+    try {
+      const { fields, entry, conflict, alreadySaved } = await saveReviewedUpdate(projectId, review);
+      setProjects((current) => current.map((project) => {
+        if (project.id !== projectId) return project;
+        const history = entry ? [entry, ...project.history.filter((item) => item.id !== entry.id)] : project.history;
+        return { ...project, ...fields, history };
+      }));
+      if (conflict) throw new Error('This project changed during review. Go back to your sentence and preview it again.');
+      setSaveState('saved');
+      flashToast(alreadySaved ? 'Update already recorded' : 'Project update saved');
+    } catch (error) {
+      setSaveState('error');
+      throw error;
+    }
+  }
+
   async function createProject(p) {
     const previous = projects;
     setProjects((ps) => [p, ...ps]);
@@ -275,70 +287,10 @@ export default function App() {
       driveDocuments: relevantDriveDocuments(selectedProject, driveDocuments),
     };
   }, [driveDocuments, selectedProject]);
-  const turnOptions = React.useMemo(() => {
-    const ids = new Set(['MM', 'SK']);
-    for (const project of projects) {
-      ids.add(project.turn);
-      if (project.waitingOn) ids.add(project.waitingOn);
-      for (const id of project.coauthors || []) ids.add(id);
-    }
-    return [...ids].filter((id) => people[id]).sort((a, b) => {
-      const aKind = people[a]?.kind === 'internal' ? 0 : 1;
-      const bKind = people[b]?.kind === 'internal' ? 0 : 1;
-      if (aKind !== bKind) return aKind - bKind;
-      return (people[a]?.name || a).localeCompare(people[b]?.name || b);
-    });
-  }, [people, projects]);
-  const filteredProjects = React.useMemo(() => {
-    const needle = searchQuery.trim().toLowerCase();
-    return projects.filter((project) => {
-      if (statusFilter !== 'all' && project.status !== statusFilter) return false;
-      if (typeFilter !== 'all' && project.type !== typeFilter) return false;
-      if (turnFilter !== 'all' && project.turn !== turnFilter && project.waitingOn !== turnFilter && !project.coauthors.includes(turnFilter)) return false;
-      if (!needle) return true;
-      const collaboratorText = project.coauthors.map((id) => personById(people, id)?.name || id).join(' ');
-      return [
-        project.title,
-        project.venue,
-        project.status,
-        project.type,
-        project.note,
-        project.notes,
-        project.domain,
-        ...(project.tags || []),
-        collaboratorText,
-        personById(people, project.turn)?.name,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(needle);
-    });
-  }, [people, projects, searchQuery, statusFilter, typeFilter, turnFilter]);
-  const filtersActive = searchQuery.trim() || statusFilter !== 'all' || typeFilter !== 'all' || turnFilter !== 'all';
-  const todayStr = new Date().toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
   return (
     <div className="app">
       <header className="masthead">
-        <div>
-          <h1>
-            Research <span className="amp">and</span> Project Dashboard
-          </h1>
-          <div className="dateline">Friday · {todayStr} · Vol. III No. XVII</div>
-        </div>
-        <div className="issue">
-          <div>
-            <strong>Mannino</strong> &amp; <strong>Kotler</strong>
-          </div>
-          <div>two admins · equal standing</div>
-          <div>est. 2024</div>
-        </div>
+        <h1>Research projects</h1>
       </header>
 
       <nav className="nav">
@@ -357,74 +309,7 @@ export default function App() {
       </nav>
 
       {page === 'home' && (
-        <>
-          <div className="bar">
-            <span style={{ color: 'var(--ink)' }}>Group</span>
-            <span className={classNames('chip', grouping === 'turn' && 'on')} onClick={() => { setGrouping('turn'); pushEdit({ grouping: 'turn' }); }}>by turn</span>
-            <span className="sep">·</span>
-            <span className={classNames('chip', grouping === 'status' && 'on')} onClick={() => { setGrouping('status'); pushEdit({ grouping: 'status' }); }}>by status</span>
-            <span className="sep">·</span>
-            <span className={classNames('chip', grouping === 'type' && 'on')} onClick={() => { setGrouping('type'); pushEdit({ grouping: 'type' }); }}>by type</span>
-            <span className="sep">·</span>
-            <span className={classNames('chip', grouping === 'flat' && 'on')} onClick={() => { setGrouping('flat'); pushEdit({ grouping: 'flat' }); }}>flat</span>
-            <span className="right">
-              <span>{filteredProjects.length} shown · {projects.length} total</span>
-            </span>
-          </div>
-          <div className="filter-strip">
-            <label className="search-field">
-              <span>Search</span>
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="title, venue, collaborator, note"
-              />
-            </label>
-            <label>
-              <span>Status</span>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="all">All</option>
-                {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Type</span>
-              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                <option value="all">All</option>
-                {TYPES.map((type) => <option key={type} value={type}>{typeWord(type)}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Person</span>
-              <select value={turnFilter} onChange={(e) => setTurnFilter(e.target.value)}>
-                <option value="all">All</option>
-                {turnOptions.map((id) => <option key={id} value={id}>{people[id].initials} · {people[id].name}</option>)}
-              </select>
-            </label>
-            {filtersActive && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setStatusFilter('all');
-                  setTypeFilter('all');
-                  setTurnFilter('all');
-                }}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <Home
-            people={people}
-            projects={filteredProjects}
-            onOpen={setSelectedId}
-            grouping={grouping}
-            onPatch={patchProject}
-            onHistory={appendHistory}
-          />
-        </>
+        <Home people={people} projects={projects} query={searchQuery} onSearch={setSearchQuery} onOpen={setSelectedId} onPatch={patchProject} />
       )}
 
       {page === 'people' && <People people={people} projects={projects} onOpenProject={setSelectedId} onSavePerson={savePerson} />}
@@ -443,6 +328,11 @@ export default function App() {
 
       {selected && (
         <Detail
+          key={selected.id}
+          onSaveUpdate={applyReviewedUpdate}
+          updateAuthor={updateAuthor}
+          onChooseAuthor={setUpdateAuthor}
+          updateAvailable={dataSource === 'supabase' || !isSupabaseConfigured}
           people={people}
           project={selected}
           onClose={() => setSelectedId(null)}
@@ -478,26 +368,6 @@ export default function App() {
         />
         <div className="warmth-scale"><span>cool</span><span>warm</span></div>
 
-        <label style={{ marginTop: 18 }}>Home grouping</label>
-        <div className="opts">
-          {[
-            ['turn', 'by turn'],
-            ['status', 'by status'],
-            ['type', 'by type'],
-            ['flat', 'flat'],
-          ].map(([v, l]) => (
-            <button
-              key={v}
-              className={grouping === v ? 'on' : ''}
-              onClick={() => {
-                setGrouping(v);
-                pushEdit({ grouping: v });
-              }}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
       </div>
 
       {toast && <div className="toast" role="status">{toast}</div>}

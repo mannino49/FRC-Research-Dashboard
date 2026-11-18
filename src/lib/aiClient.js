@@ -30,6 +30,19 @@ export async function runProjectAiAction(project, people, actionId, options = {}
   };
 }
 
+export async function previewProjectUpdate(sentence, current, people, author) {
+  const token = await getSupabaseAccessToken();
+  if (!token) throw new Error('AI suggestions require a signed-in session.');
+  const response = await fetch('/api/ai', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: 'preview_project_update', sentence, current, people, author }),
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.changes) throw new Error('AI suggestions are unavailable.');
+  return result.changes;
+}
+
 export async function scoutProjectCollaborators(project, people) {
   const context = buildProjectContext(project, people);
   const prompt = projectContextToPrompt(context);

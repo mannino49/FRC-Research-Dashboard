@@ -1,11 +1,12 @@
 import React from 'react';
+import ProjectUpdate from './ProjectUpdate.jsx';
 import { AI_ACTIONS, getAiAction } from '../lib/aiActions.js';
 import { runProjectAiAction, scoutProjectCollaborators } from '../lib/aiClient.js';
 import { createAiOutputRecord } from '../lib/dashboardRepository.js';
 import { latestDriveDocument, projectUpdateSuggestions } from '../lib/driveIntelligence.js';
 import { STATUSES, classNames, fmtDate, isMine, personById, typeMark, typeWord } from '../utils.js';
 
-export default function Detail({ people, project, onClose, onPatch, onHistory, onDelete }) {
+export default function Detail({ people, project, onClose, onPatch, onHistory, onDelete, onSaveUpdate, updateAvailable, updateAuthor, onChooseAuthor }) {
   const [editingStatus, setEditingStatus] = React.useState(false);
   const [editingTurn, setEditingTurn] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
@@ -34,7 +35,7 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
 
   if (!project) return null;
   const p = project;
-  const allTurns = ['MM', 'SK', ...p.coauthors];
+  const allTurns = [...new Set(['MM', 'SK', p.turn, ...p.coauthors])].filter((id) => people[id]);
   const latestDriveDoc = latestDriveDocument(p.driveDocuments);
   const driveSuggestions = projectUpdateSuggestions(p, p.driveDocuments);
 
@@ -138,6 +139,78 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
               <a href={p.venueUrl} target="_blank" rel="noreferrer"><em>{p.venue}</em></a>
             ) : (
               <em>{p.venue}</em>
+            )}
+          </div>
+
+          <div className="ai-panel">
+            <button className="handoff-action" onClick={() => runAiAction('handoff_brief')} disabled={aiState === 'working'}>
+              {aiState === 'working' && activeAiAction === 'handoff_brief' ? 'Preparing handoff…' : 'Where did we leave off?'}
+            </button>
+            <ProjectUpdate project={p} people={people} onSave={onSaveUpdate} available={updateAvailable}
+              author={updateAuthor} onChooseAuthor={onChooseAuthor} />
+            <details className="more-ai">
+              <summary>More AI tools</summary>
+              <div className="ai-prompts" aria-label="More AI tools">
+                {AI_ACTIONS.filter((action) => action.id !== 'handoff_brief').map((action) => (
+                  <button
+                    key={action.id}
+                    className={activeAiAction === action.id ? 'active' : ''}
+                    onClick={() => runAiAction(action.id)}
+                    disabled={aiState === 'working'}
+                    title={action.description}
+                  >
+                    {aiState === 'working' && activeAiAction === action.id ? action.verb : action.title}
+                  </button>
+                ))}
+                <button
+                  className={activeAiAction === 'collaborator_scout' ? 'active' : ''}
+                  onClick={runCollaboratorScout}
+                  disabled={aiState === 'working'}
+                  title="Search the web for public collaborator candidates with source links."
+                >
+                  {aiState === 'working' && activeAiAction === 'collaborator_scout' ? 'Scouting...' : 'Scout collaborators'}
+                </button>
+              </div>
+            </details>
+            {aiMessage && <div className={classNames('ai-message', aiState === 'error' && 'error')}>{aiMessage}</div>}
+            {aiDraft?.response && (
+              <div className="ai-output">
+                <div className="ai-output-title">{aiDraft.title || getAiAction(activeAiAction)?.title}</div>
+                {aiDraft.structured ? (
+                  <div className="ai-structured">
+                    {aiDraft.structured.headline && <h3>{aiDraft.structured.headline}</h3>}
+                    {aiDraft.structured.summary && <p>{aiDraft.structured.summary}</p>}
+                    {(aiDraft.structured.sections || []).map((section) => (
+                      <section key={section.heading}>
+                        <h4>{section.heading}</h4>
+                        {section.body && <p>{section.body}</p>}
+                        {section.items?.length ? (
+                          <ul>{section.items.map((item) => <li key={item}>{item}</li>)}</ul>
+                        ) : null}
+                      </section>
+                    ))}
+                    {aiDraft.structured.nextSteps?.length ? (
+                      <section>
+                        <h4>Next steps</h4>
+                        <ul>{aiDraft.structured.nextSteps.map((step) => <li key={step}>{step}</li>)}</ul>
+                      </section>
+                    ) : null}
+                    {aiDraft.structured.missingContext?.length ? (
+                      <section>
+                        <h4>Missing context</h4>
+                        <ul>{aiDraft.structured.missingContext.map((item) => <li key={item}>{item}</li>)}</ul>
+                      </section>
+                    ) : null}
+                  </div>
+                ) : (
+                  <pre>{aiDraft.response}</pre>
+                )}
+                <div className="ai-actions">
+                  <span>{aiDraft.model}</span>
+                  <button onClick={copyAiDraft}>Copy</button>
+                  <button onClick={promoteAiDraftToNotes}>Add to notes</button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -296,81 +369,6 @@ export default function Detail({ people, project, onClose, onPatch, onHistory, o
                 ))}
               </div>
             ) : null}
-          </div>
-
-          <div className="ai-panel">
-            <div className="ai-panel-head">
-              <div>
-                <div className="lbl">AI project assistant</div>
-                <p>Choose an operational prompt grounded only in this project&apos;s dashboard context.</p>
-                {p.driveDocuments?.length ? (
-                  <div className="drive-context-note">
-                    Includes {p.driveDocuments.length} synced Drive {p.driveDocuments.length === 1 ? 'document' : 'documents'}.
-                  </div>
-                ) : null}
-              </div>
-            </div>
-            <div className="ai-prompts" aria-label="Suggested AI prompts">
-              {AI_ACTIONS.map((action) => (
-                <button
-                  key={action.id}
-                  className={activeAiAction === action.id ? 'active' : ''}
-                  onClick={() => runAiAction(action.id)}
-                  disabled={aiState === 'working'}
-                  title={action.description}
-                >
-                  {aiState === 'working' && activeAiAction === action.id ? action.verb : action.title}
-                </button>
-              ))}
-              <button
-                className={activeAiAction === 'collaborator_scout' ? 'active' : ''}
-                onClick={runCollaboratorScout}
-                disabled={aiState === 'working'}
-                title="Search the web for public collaborator candidates with source links."
-              >
-                {aiState === 'working' && activeAiAction === 'collaborator_scout' ? 'Scouting...' : 'Scout collaborators'}
-              </button>
-            </div>
-            {aiMessage && <div className={classNames('ai-message', aiState === 'error' && 'error')}>{aiMessage}</div>}
-            {aiDraft?.response && (
-              <div className="ai-output">
-                <div className="ai-output-title">{aiDraft.title || getAiAction(activeAiAction)?.title}</div>
-                {aiDraft.structured ? (
-                  <div className="ai-structured">
-                    {aiDraft.structured.headline && <h3>{aiDraft.structured.headline}</h3>}
-                    {aiDraft.structured.summary && <p>{aiDraft.structured.summary}</p>}
-                    {(aiDraft.structured.sections || []).map((section) => (
-                      <section key={section.heading}>
-                        <h4>{section.heading}</h4>
-                        {section.body && <p>{section.body}</p>}
-                        {section.items?.length ? (
-                          <ul>{section.items.map((item) => <li key={item}>{item}</li>)}</ul>
-                        ) : null}
-                      </section>
-                    ))}
-                    {aiDraft.structured.nextSteps?.length ? (
-                      <section>
-                        <h4>Next steps</h4>
-                        <ul>{aiDraft.structured.nextSteps.map((step) => <li key={step}>{step}</li>)}</ul>
-                      </section>
-                    ) : null}
-                    {aiDraft.structured.missingContext?.length ? (
-                      <section>
-                        <h4>Missing context</h4>
-                        <ul>{aiDraft.structured.missingContext.map((item) => <li key={item}>{item}</li>)}</ul>
-                      </section>
-                    ) : null}
-                  </div>
-                ) : (
-                  <pre>{aiDraft.response}</pre>
-                )}
-                <div className="ai-actions">
-                  <span>{aiDraft.model}</span>
-                  <button onClick={copyAiDraft}>Copy</button>
-                  <button onClick={promoteAiDraftToNotes}>Add to notes</button>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="history">

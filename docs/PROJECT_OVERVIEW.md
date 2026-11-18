@@ -9,21 +9,21 @@ The product concept is closer to an editorial desk or academic project ledger th
 ## Primary Workflows
 
 1. Review all active projects.
-2. Group projects by turn, status, type, or flat list.
+2. Scan projects by status. Expand a title to see its details or change its status.
 3. Open a project detail panel.
 4. Change project status.
 5. Pass the turn to another collaborator.
-6. Add a note/update that becomes the latest next action.
+6. Enter a short update, review the proposed status, turn, and next action, then save it with the original sentence in history.
 7. Review collaborators and the projects associated with them.
 8. Create a new project seed.
 9. Jump quickly using the command palette.
 
 ## Screens
 
-- **Projects**: summary metrics, grouping controls, and project list.
+- **Projects**: searchable status sections with counts, current owners, and next actions.
 - **Collaborators**: internal/external collaborator directory with add/edit controls and related active projects.
 - **New project**: lightweight creation form.
-- **Project detail panel**: slide-over with facts, links, next action, note composer, and history.
+- **Project detail panel**: slide-over with a handoff brief, reviewed project updates, notes, matched manuscripts, and history.
 - **Command palette**: `Cmd/Ctrl+K` navigation across pages and projects.
 - **Tweaks panel**: available when edit mode is activated by the embedding parent frame.
 
@@ -63,5 +63,4 @@ Supabase is the canonical production data store.
 ## Likely Next Additions
 
 - Continue extending the canonical Vite/React source path.
-- Add filtering/search beyond the command palette.
 - Add a small test suite around data transforms and persistence calls.
